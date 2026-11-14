@@ -1,0 +1,14 @@
+{
+  "system": "Persian Gulf Shipping Terminal",
+  "standard": "IMO ECDIS S-52",
+  "lastUpdated": "2026-11-14",
+  "overview": "Comprehensive Persian Gulf Maritime Intelligence, Shipping Lines Directory, 12 Hub Ports, and Listed Shipping Stocks Terminal.",
+  "categories": [
+    "Container Carriers",
+    "VLCC & Tanker Operators",
+    "LNG/LPG Carriers",
+    "Regional & Feeder Lines"
+  ],
+  "portsCount": 12,
+  "stocksCount": 19
+}

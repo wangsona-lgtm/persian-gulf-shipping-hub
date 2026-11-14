@@ -1,0 +1,228 @@
+<!DOCTYPE html>
+<html lang="zh-TW">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>波斯灣航運全景動態海圖與上市股票觀測站 | Persian Gulf Shipping Terminal</title>
+  <!-- 引入 ECDIS 數位海圖規範與終端樣式 -->
+  <link rel="stylesheet" href="css/ecdis.css">
+  <link rel="stylesheet" href="css/styles.css">
+  <link rel="icon" href="data:image/svg+xml,<svg xmlns=%22http://www.w3.org/2000/svg%22 viewBox=%220 0 100 100%22><text y=%22.9em%22 font-size=%2290%22>⚓</text></svg>">
+</head>
+<body>
+
+  <!-- 頂部導航列 -->
+  <header class="top-nav">
+    <div class="brand-section">
+      <div class="brand-logo">⚓</div>
+      <div class="brand-text">
+        <h1>波斯灣航運全景動態海圖與上市股票觀測站</h1>
+        <p>PERSIAN GULF SHIPPING TERMINAL · ECDIS S-52 NAUTICAL INTELLIGENCE</p>
+      </div>
+    </div>
+    <div class="nav-meta">
+      <div class="live-pill">
+        <span class="live-dot"></span>
+        <span>ECDIS LIVE S-52 · TSS 荷姆茲在線</span>
+      </div>
+      <span style="color:#64748b;">最後更新：2026-11-14</span>
+    </div>
+  </header>
+
+  <!-- 分頁切換選單 (Tab Navigation) -->
+  <nav class="tabs-header">
+    <button class="tab-btn active" data-tab="tab-ecdis">
+      <span>🗺️</span> ECDIS 數位海圖與樞紐港口
+    </button>
+    <button class="tab-btn" data-tab="tab-stocks">
+      <span>🚢</span> 航運股終端與籌碼看板
+    </button>
+    <button class="tab-btn" data-tab="tab-directory">
+      <span>📋</span> 船運公司名錄 (四大族群)
+    </button>
+    <button class="tab-btn" data-tab="tab-ports">
+      <span>⚓</span> 12 大樞紐港口矩陣
+    </button>
+    <button class="tab-btn" data-tab="tab-geopolitics">
+      <span>🛡️</span> 地緣戰略戰情室
+    </button>
+  </nav>
+
+  <!-- 主內容容器 -->
+  <main class="main-container">
+
+    <!-- 即時關鍵指標跑馬板 (Market KPIs) -->
+    <section class="kpi-ticker-grid" id="kpiTickerContainer">
+      <!-- 由 app.js 動態渲染 -->
+    </section>
+
+    <!-- 分頁一：ECDIS 數位海圖與港口樞紐 -->
+    <section id="tab-ecdis" class="tab-pane active">
+      <!-- 航道與航商互動控制列 -->
+      <div class="chart-controls-panel">
+        <div class="controls-header">
+          <div class="controls-title">
+            <span>💡 互動海圖圖層控制與光流航道切換</span>
+          </div>
+          <span style="font-size:11px; color:#94a3b8;">點擊任意港口圓點可檢視深度檔案；點選下方航商可即時高亮專屬航線</span>
+        </div>
+
+        <!-- 五大動態光流航道 Checkboxes -->
+        <div class="lanes-toggle-row">
+          <label class="lane-checkbox-label">
+            <input type="checkbox" class="lane-toggle-cb" data-lane-id="lane_fareast" checked>
+            <span class="lane-dot-indicator" style="background:#00ff88;"></span>
+            <span>遠東直達幹線 (Asia Direct)</span>
+          </label>
+          <label class="lane-checkbox-label">
+            <input type="checkbox" class="lane-toggle-cb" data-lane-id="lane_europe" checked>
+            <span class="lane-dot-indicator" style="background:#ff9900;"></span>
+            <span>歐洲/地中海幹線 (Europe/Med)</span>
+          </label>
+          <label class="lane-checkbox-label">
+            <input type="checkbox" class="lane-toggle-cb" data-lane-id="lane_vlcc" checked>
+            <span class="lane-dot-indicator" style="background:#ffd700;"></span>
+            <span>VLCC 原油與 LNG 出口動脈 (Crude & Gas)</span>
+          </label>
+          <label class="lane-checkbox-label">
+            <input type="checkbox" class="lane-toggle-cb" data-lane-id="lane_feeder" checked>
+            <span class="lane-dot-indicator" style="background:#00d2ff;"></span>
+            <span>灣內支線駁運 (Regional Feeders)</span>
+          </label>
+          <label class="lane-checkbox-label">
+            <input type="checkbox" class="lane-toggle-cb" data-lane-id="lane_adcop" checked>
+            <span class="lane-dot-indicator" style="background:#d946ef;"></span>
+            <span>阿聯酋富吉拉陸上繞道油管 (ADCOP)</span>
+          </label>
+        </div>
+
+        <!-- 船商專屬航線快速高亮選擇器 -->
+        <div>
+          <div style="font-size:11px; color:#94a3b8; margin-bottom:6px; font-weight:700;">🚢 航商專屬航線與掛靠港高亮選擇器：</div>
+          <div class="carrier-chips-row">
+            <button class="carrier-chip-btn active" data-carrier-id="all">全部顯示 (All)</button>
+            <button class="carrier-chip-btn" data-carrier-id="evergreen">長榮海運 (2603)</button>
+            <button class="carrier-chip-btn" data-carrier-id="wan_hai">萬海航運 (2615)</button>
+            <button class="carrier-chip-btn" data-carrier-id="yang_ming">陽明海運 (2609)</button>
+            <button class="carrier-chip-btn" data-carrier-id="msc">地中海航運 (MSC)</button>
+            <button class="carrier-chip-btn" data-carrier-id="maersk">馬士基 (Maersk)</button>
+            <button class="carrier-chip-btn" data-carrier-id="cma_cgm">達飛海運 (CMA CGM)</button>
+            <button class="carrier-chip-btn" data-carrier-id="cosco">中遠海運 (COSCO)</button>
+            <button class="carrier-chip-btn" data-carrier-id="hapag_lloyd">赫伯羅德 (Hapag)</button>
+            <button class="carrier-chip-btn" data-carrier-id="one">海洋網聯 (ONE)</button>
+            <button class="carrier-chip-btn" data-carrier-id="hmm">韓新遠洋 (HMM)</button>
+            <button class="carrier-chip-btn" data-carrier-id="bahri">沙烏地國家航運 (Bahri)</button>
+            <button class="carrier-chip-btn" data-carrier-id="frontline">前線海運 (Frontline)</button>
+            <button class="carrier-chip-btn" data-carrier-id="dht">DHT 控股 (DHT)</button>
+            <button class="carrier-chip-btn" data-carrier-id="euronav">歐航 (CMB.TECH)</button>
+            <button class="carrier-chip-btn" data-carrier-id="adnoc_ls">阿布達比國油海運 (ADNOCLS)</button>
+            <button class="carrier-chip-btn" data-carrier-id="nakilat">卡達天然氣 (Nakilat)</button>
+            <button class="carrier-chip-btn" data-carrier-id="unifeeder">優聯支線 (Unifeeder)</button>
+          </div>
+        </div>
+
+        <!-- 航商高亮提示 Banner -->
+        <div id="carrierNoticeBox" style="display:none; margin-top:12px; padding:10px 14px; background:rgba(2,132,199,0.15); border:1px solid rgba(56,189,248,0.3); border-radius:6px;"></div>
+      </div>
+
+      <!-- 海圖與右側港口檔案雙欄佈局 -->
+      <div class="chart-layout-grid">
+        <div id="ecdisChartContainer">
+          <!-- 由 ecdis_chart.js 渲染 -->
+        </div>
+        <div id="portDossierPanel">
+          <!-- 由 app.js 渲染選中港口資訊 -->
+        </div>
+      </div>
+    </section>
+
+    <!-- 分頁二：國內外上市航運股票終端 -->
+    <section id="tab-stocks" class="tab-pane">
+      <div class="stock-filters-bar">
+        <div class="stock-category-pills">
+          <button class="cat-pill active" data-cat="all">全部航運股 (All)</button>
+          <button class="cat-pill" data-cat="taiwan">🇹🇼 台灣上市航運 (長榮/萬海/陽明/新興/裕民)</button>
+          <button class="cat-pill" data-cat="container">🌍 全球貨櫃巨頭 (Maersk/Hapag/COSCO/HMM)</button>
+          <button class="cat-pill" data-cat="tanker_vlcc">🛢️ 超大型原油輪 VLCC (Frontline/DHT/Bahri/ADNOC)</button>
+          <button class="cat-pill" data-cat="lng_gas">❄️ LNG / LPG 氣體船隊 (Nakilat/BW LPG)</button>
+          <button class="cat-pill" data-cat="regional_feeder">🇦🇪 中東本土上市港口 (AD Ports/Milaha)</button>
+        </div>
+        <div>
+          <input type="text" id="stockSearchInput" class="search-input-box" placeholder="🔍 搜尋股票代號、公司名稱或國別...">
+        </div>
+      </div>
+
+      <!-- 股票卡片網格 -->
+      <div class="stocks-grid" id="stocksGrid">
+        <!-- 由 app.js 動態渲染 -->
+      </div>
+
+      <!-- 股票橫向財務與船隊規模比較大表 -->
+      <div class="table-card">
+        <div style="padding:14px 18px; background:#0a1424; border-bottom:1px solid var(--border-subtle); display:flex; justify-content:space-between; align-items:center;">
+          <h3 style="font-size:15px; font-weight:800; color:#fff;">📊 全球通往中東波斯灣航運上市公司橫向財務與籌碼指標矩陣</h3>
+          <span style="font-size:11px; color:#94a3b8;">含估值、股息、波斯灣運力比重與主力籌碼信號</span>
+        </div>
+        <div class="responsive-table-wrapper">
+          <table class="custom-stock-table">
+            <thead>
+              <tr>
+                <th>代號 (Ticker)</th>
+                <th>公司名稱 (Company)</th>
+                <th>國別</th>
+                <th>所屬航運類型</th>
+                <th>股價 (Price)</th>
+                <th>漲跌幅 (%)</th>
+                <th>本益比 (P/E)</th>
+                <th>股息殖利率</th>
+                <th>波斯灣運力權重</th>
+                <th>主力籌碼信號</th>
+                <th>操作連動</th>
+              </tr>
+            </thead>
+            <tbody id="stocksTableBody">
+              <!-- 由 app.js 動態渲染 -->
+            </tbody>
+          </table>
+        </div>
+      </div>
+    </section>
+
+    <!-- 分頁三：全球通往中東波斯灣船運公司名錄 -->
+    <section id="tab-directory" class="tab-pane">
+      <div id="shippingDirectoryContainer">
+        <!-- 由 app.js 動態渲染四大族群卡片 -->
+      </div>
+    </section>
+
+    <!-- 分頁四：12 大樞紐港口矩陣 -->
+    <section id="tab-ports" class="tab-pane">
+      <div id="portsMatrixContainer">
+        <!-- 由 app.js 動態渲染 12 大港口全覽卡片 -->
+      </div>
+    </section>
+
+    <!-- 分頁五：地緣戰略戰情室 -->
+    <section id="tab-geopolitics" class="tab-pane">
+      <div id="geopoliticsContainer">
+        <!-- 由 app.js 動態渲染三大地緣戰略分析與戰險指標 -->
+      </div>
+    </section>
+
+  </main>
+
+  <!-- 頁尾 -->
+  <footer class="hub-footer">
+    <p>波斯灣航運全景動態海圖與上市股票觀測站 (Persian Gulf Shipping Terminal) · 遵守 IMO ECDIS S-52 數位海圖標準</p>
+    <p style="margin-top:4px; color:#475569;">航海圖資僅供產業、學術與航商投資研究參考，不可作為正式船舶航行導航 (Not for Navigational Purposes)</p>
+  </footer>
+
+  <!-- 引入數據庫與邏輯腳本 -->
+  <script src="js/ports_data.js"></script>
+  <script src="js/shipping_data.js"></script>
+  <script src="js/stocks_data.js"></script>
+  <script src="js/geopolitics_data.js"></script>
+  <script src="js/ecdis_chart.js"></script>
+  <script src="js/app.js"></script>
+</body>
+</html>

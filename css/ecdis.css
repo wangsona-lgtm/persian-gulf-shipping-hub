@@ -1,0 +1,346 @@
+/* ==========================================================================
+   ECDIS 數位海圖規格專用樣式表 (Electronic Chart Display & Information System)
+   符合國際海事組織 (IMO) S-52 夜間數位海圖色調與航海視覺標準
+   ========================================================================== */
+
+:root {
+  --ecdis-bg-deep: #050d18;
+  --ecdis-water-deep: #08162b;
+  --ecdis-water-mid: #0d223f;
+  --ecdis-water-shallow: #132f54;
+  --ecdis-land-fill: #17283c;
+  --ecdis-land-border: #2e4d73;
+  --ecdis-grid-line: rgba(70, 130, 180, 0.18);
+  --ecdis-grid-text: #5f8dbd;
+  
+  --lane-fareast: #00ff88;
+  --lane-europe: #ff9900;
+  --lane-vlcc: #ffd700;
+  --lane-feeder: #00d2ff;
+  --lane-adcop: #d946ef;
+  
+  --tss-separation: rgba(234, 179, 8, 0.35);
+  --tss-inbound: rgba(0, 255, 136, 0.85);
+  --tss-outbound: rgba(255, 153, 0, 0.85);
+  --tss-boundary: #00f2ff;
+}
+
+/* 海圖容器 */
+.ecdis-viewport {
+  position: relative;
+  width: 100%;
+  height: 620px;
+  background: radial-gradient(circle at 60% 40%, #0a1c33 0%, #050d18 100%);
+  border-radius: 12px;
+  overflow: hidden;
+  border: 1px solid #1e3a5f;
+  box-shadow: 0 12px 36px rgba(0, 0, 0, 0.6), inset 0 0 40px rgba(0, 30, 60, 0.5);
+  font-family: 'SF Pro Display', -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, monospace;
+}
+
+/* SVG 向量海圖畫布 */
+.ecdis-svg-chart {
+  width: 100%;
+  height: 100%;
+  display: block;
+  user-select: none;
+  cursor: grab;
+}
+.ecdis-svg-chart:active {
+  cursor: grabbing;
+}
+
+/* 經緯度網格線與經緯刻度 */
+.ecdis-graticule {
+  stroke: var(--ecdis-grid-line);
+  stroke-width: 0.8;
+  stroke-dasharray: 4, 4;
+}
+.ecdis-graticule-major {
+  stroke: rgba(70, 130, 180, 0.3);
+  stroke-width: 1.2;
+}
+.ecdis-coord-label {
+  fill: var(--ecdis-grid-text);
+  font-size: 10px;
+  font-family: monospace;
+  font-weight: 600;
+  letter-spacing: 0.5px;
+}
+
+/* 水深等深線與海盆漸層 */
+.ecdis-contour-10m {
+  fill: var(--ecdis-water-shallow);
+  opacity: 0.6;
+}
+.ecdis-contour-50m {
+  fill: var(--ecdis-water-mid);
+  opacity: 0.7;
+}
+.ecdis-contour-100m {
+  fill: var(--ecdis-water-deep);
+  opacity: 0.9;
+}
+
+/* 陸地與海岸線 */
+.ecdis-land {
+  fill: var(--ecdis-land-fill);
+  stroke: var(--ecdis-land-border);
+  stroke-width: 1.5;
+  transition: all 0.3s ease;
+}
+.ecdis-land-island {
+  fill: #1c324a;
+  stroke: #416792;
+  stroke-width: 1.0;
+}
+.ecdis-coastline-glow {
+  fill: none;
+  stroke: rgba(56, 189, 248, 0.25);
+  stroke-width: 3;
+}
+
+/* 國家與水域名稱標註 */
+.ecdis-water-label {
+  fill: rgba(147, 197, 253, 0.45);
+  font-size: 13px;
+  font-weight: 700;
+  letter-spacing: 2px;
+  text-anchor: middle;
+  pointer-events: none;
+  font-style: italic;
+}
+.ecdis-country-label {
+  fill: rgba(203, 213, 225, 0.4);
+  font-size: 12px;
+  font-weight: 800;
+  letter-spacing: 3px;
+  text-anchor: middle;
+  pointer-events: none;
+}
+
+/* 荷姆茲海峽 TSS 分道通航制視覺層 */
+.ecdis-tss-box {
+  fill: rgba(15, 23, 42, 0.55);
+  stroke: var(--tss-boundary);
+  stroke-width: 1.2;
+  stroke-dasharray: 5, 3;
+}
+.ecdis-tss-separation {
+  fill: url(#tssHatch);
+  stroke: #eab308;
+  stroke-width: 1.0;
+}
+.ecdis-tss-arrow {
+  fill: none;
+  stroke-width: 2.0;
+  stroke-linecap: round;
+}
+
+/* 航道動態光流動畫 (Animated Flow Lines) */
+.flow-line {
+  fill: none;
+  stroke-linecap: round;
+  stroke-linejoin: round;
+  transition: opacity 0.4s ease, stroke-width 0.3s ease, filter 0.3s ease;
+}
+.flow-line-glow {
+  fill: none;
+  opacity: 0.35;
+  filter: blur(4px);
+}
+
+/* 航線光流動畫 @keyframes */
+@keyframes dashFlowForward {
+  0% {
+    stroke-dashoffset: 200;
+  }
+  100% {
+    stroke-dashoffset: 0;
+  }
+}
+@keyframes dashFlowReverse {
+  0% {
+    stroke-dashoffset: 0;
+  }
+  100% {
+    stroke-dashoffset: 200;
+  }
+}
+@keyframes pulsePipeline {
+  0%, 100% {
+    stroke-width: 4;
+    filter: drop-shadow(0 0 4px #d946ef);
+  }
+  50% {
+    stroke-width: 6;
+    filter: drop-shadow(0 0 12px #f43f5e);
+  }
+}
+
+.flow-active-fareast {
+  stroke: var(--lane-fareast);
+  animation: dashFlowForward 3.5s linear infinite;
+  filter: drop-shadow(0 0 5px rgba(0, 255, 136, 0.6));
+}
+.flow-active-europe {
+  stroke: var(--lane-europe);
+  animation: dashFlowForward 4.2s linear infinite;
+  filter: drop-shadow(0 0 5px rgba(255, 153, 0, 0.6));
+}
+.flow-active-vlcc {
+  stroke: var(--lane-vlcc);
+  animation: dashFlowForward 5.0s linear infinite;
+  filter: drop-shadow(0 0 7px rgba(255, 215, 0, 0.7));
+}
+.flow-active-feeder {
+  stroke: var(--lane-feeder);
+  animation: dashFlowForward 3.0s linear infinite;
+  filter: drop-shadow(0 0 4px rgba(0, 210, 255, 0.5));
+}
+.flow-active-adcop {
+  stroke: var(--lane-adcop);
+  animation: pulsePipeline 2.5s ease-in-out infinite;
+}
+
+/* 航道聚焦與暗化狀態 */
+.flow-dimmed {
+  opacity: 0.12 !important;
+  filter: none !important;
+}
+.flow-highlighted {
+  opacity: 1.0 !important;
+  stroke-width: 5.5 !important;
+  filter: drop-shadow(0 0 10px #ffffff) !important;
+}
+
+/* 港口點位與雷達光圈 */
+.ecdis-port-group {
+  cursor: pointer;
+  transition: transform 0.2s ease;
+}
+.ecdis-port-group:hover {
+  transform: scale(1.15);
+}
+.ecdis-port-radar {
+  fill: none;
+  stroke-width: 1.2;
+  transform-origin: center;
+  animation: portRadarPulse 2.4s ease-out infinite;
+}
+@keyframes portRadarPulse {
+  0% {
+    r: 6;
+    opacity: 0.9;
+    stroke-width: 1.8;
+  }
+  100% {
+    r: 20;
+    opacity: 0;
+    stroke-width: 0.5;
+  }
+}
+
+.ecdis-port-node {
+  fill: #0ea5e9;
+  stroke: #ffffff;
+  stroke-width: 2.0;
+  filter: drop-shadow(0 0 6px #00d2ff);
+  transition: all 0.3s ease;
+}
+.ecdis-port-node.active {
+  fill: #f43f5e !important;
+  stroke: #fff !important;
+  stroke-width: 3.0 !important;
+  r: 9 !important;
+  filter: drop-shadow(0 0 14px #f43f5e) !important;
+}
+.ecdis-port-label {
+  fill: #e2e8f0;
+  font-size: 11px;
+  font-weight: 700;
+  text-anchor: middle;
+  filter: drop-shadow(0 2px 4px rgba(0, 0, 0, 0.9));
+  pointer-events: none;
+}
+.ecdis-port-code {
+  fill: #94a3b8;
+  font-size: 9px;
+  font-family: monospace;
+  font-weight: 600;
+  text-anchor: middle;
+  pointer-events: none;
+}
+
+/* ECDIS 羅經盤 (Compass Rose) */
+.ecdis-compass-rose {
+  position: absolute;
+  top: 18px;
+  right: 18px;
+  width: 90px;
+  height: 90px;
+  pointer-events: none;
+  opacity: 0.75;
+}
+
+/* ECDIS 水深比例尺與狀態指示 */
+.ecdis-hud-status {
+  position: absolute;
+  bottom: 14px;
+  left: 18px;
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  padding: 6px 14px;
+  background: rgba(10, 25, 47, 0.85);
+  border: 1px solid rgba(56, 189, 248, 0.3);
+  border-radius: 6px;
+  backdrop-filter: blur(8px);
+  color: #94a3b8;
+  font-size: 11px;
+  font-family: monospace;
+  z-index: 10;
+}
+.ecdis-hud-status .mode-badge {
+  display: inline-block;
+  padding: 2px 6px;
+  border-radius: 4px;
+  background: rgba(0, 255, 136, 0.15);
+  color: #00ff88;
+  font-weight: 700;
+  font-size: 10px;
+}
+
+/* 浮動提示框 Tooltip */
+.ecdis-tooltip {
+  position: absolute;
+  pointer-events: none;
+  background: rgba(15, 23, 42, 0.95);
+  border: 1px solid #38bdf8;
+  border-radius: 8px;
+  padding: 10px 14px;
+  color: #f8fafc;
+  font-size: 12px;
+  box-shadow: 0 8px 24px rgba(0, 0, 0, 0.7);
+  backdrop-filter: blur(10px);
+  z-index: 100;
+  display: none;
+  transform: translate(-50%, -120%);
+  min-width: 180px;
+}
+.ecdis-tooltip h4 {
+  margin: 0 0 4px 0;
+  color: #38bdf8;
+  font-size: 13px;
+  font-weight: 700;
+}
+.ecdis-tooltip .tt-row {
+  display: flex;
+  justify-content: space-between;
+  margin-top: 3px;
+  color: #cbd5e1;
+}
+.ecdis-tooltip .tt-val {
+  font-weight: 600;
+  color: #f1f5f9;
+}
