@@ -1,95 +1,41 @@
 /**
- * 全球航運咽喉與大動脈互動海圖 (Global Choke Points & Mainlines ECDIS Map)
- * 繪製全球十大海峽/運河、五大遠洋幹線與好望角繞道動脈
+ * 全球航運咽喉與大動脈專業 GIS 海圖 (Professional Global Choke Points & Mainlines Leaflet Map)
+ * 整合真實全球經緯度座標投影、暗夜戰術衛星底圖、十大咽喉雷達排名標記與遠洋大動脈光流
  */
 
 class GlobalChokePointMap {
   constructor(containerId, options = {}) {
-    this.container = document.getElementById(containerId);
+    this.containerId = containerId;
     this.options = options;
     this.activePointId = "hormuz";
-    this.width = 960;
-    this.height = 500;
+    this.map = null;
+    this.chokeMarkers = {};
+    this.mainlineLayers = [];
 
-    // 全球主要海峽咽喉 SVG 畫布座標對應表
+    // 全球十大海峽咽喉精準真實 GPS 經緯度座標
     this.chokeCoords = {
-      hormuz: { x: 575, y: 220, name: "荷姆茲海峽", rank: 1, type: "energy" },
-      malacca: { x: 735, y: 285, name: "馬六甲海峽", rank: 2, type: "trade" },
-      suez_bab_mandeb: { x: 535, y: 235, name: "蘇伊士/曼德海峽", rank: 3, type: "choke" },
-      panama: { x: 235, y: 275, name: "巴拿馬運河", rank: 4, type: "canal" },
-      taiwan_strait: { x: 785, y: 230, name: "台灣海峽", rank: 5, type: "tech" },
-      cape_good_hope: { x: 515, y: 430, name: "好望角", rank: 6, type: "bypass" },
-      turkish_straits: { x: 525, y: 175, name: "土耳其海峽", rank: 7, type: "grain" },
-      gibraltar: { x: 445, y: 195, name: "直布羅陀海峽", rank: 8, type: "gate" },
-      dover: { x: 465, y: 155, name: "多佛海峽", rank: 9, type: "hub" },
-      danish_straits: { x: 495, y: 135, name: "丹麥海峽", rank: 10, type: "oil" }
+      hormuz: { lat: 26.56, lon: 56.25, name: "荷姆茲海峽", rank: 1, color: "#ffd700" },
+      malacca: { lat: 1.43, lon: 103.10, name: "馬六甲海峽", rank: 2, color: "#00ff88" },
+      suez_bab_mandeb: { lat: 12.58, lon: 43.33, name: "蘇伊士/曼德海峽", rank: 3, color: "#f43f5e" },
+      panama: { lat: 9.08, lon: -79.68, name: "巴拿馬運河", rank: 4, color: "#00d2ff" },
+      taiwan_strait: { lat: 24.50, lon: 119.80, name: "台灣海峽", rank: 5, color: "#38bdf8" },
+      cape_good_hope: { lat: -34.35, lon: 18.47, name: "好望角", rank: 6, color: "#f59e0b" },
+      turkish_straits: { lat: 41.11, lon: 29.07, name: "土耳其海峽", rank: 7, color: "#a855f7" },
+      gibraltar: { lat: 35.96, lon: -5.60, name: "直布羅陀海峽", rank: 8, color: "#06b6d4" },
+      dover: { lat: 51.10, lon: 1.45, name: "多佛海峽", rank: 9, color: "#3b82f6" },
+      danish_straits: { lat: 55.33, lon: 11.00, name: "丹麥海峽", rank: 10, color: "#64748b" }
     };
 
     this.init();
   }
 
   init() {
-    if (!this.container) return;
-    this.render();
-    this.bindEvents();
-    this.selectPoint("hormuz");
-  }
+    const container = document.getElementById(this.containerId);
+    if (!container) return;
 
-  render() {
-    this.container.innerHTML = `
-      <div class="global-map-viewport">
-        <svg id="globalMapSvg" class="global-svg-chart" viewBox="0 0 ${this.width} ${this.height}" preserveAspectRatio="xMidYMid meet">
-          <defs>
-            <filter id="globalGlow" x="-20%" y="-20%" width="140%" height="140%">
-              <feGaussianBlur stdDeviation="3" result="blur" />
-              <feComposite in="SourceGraphic" in2="blur" operator="over" />
-            </filter>
-          </defs>
-
-          <!-- 背景深海 -->
-          <rect width="${this.width}" height="${this.height}" fill="#050d18" />
-
-          <!-- 簡化世界大陸輪廓 (World Landmasses) -->
-          <!-- 北美洲 (North America) -->
-          <path d="M 110,60 C 150,50 240,60 270,110 C 260,160 230,190 200,220 C 180,240 210,250 230,270 L 220,290 C 180,270 140,240 120,200 C 90,160 80,110 110,60 Z" class="ecdis-land" />
-          
-          <!-- 南美洲 (South America) -->
-          <path d="M 235,280 C 270,290 320,320 330,360 C 310,410 280,450 250,490 C 230,470 210,400 220,340 C 220,300 230,285 235,280 Z" class="ecdis-land" />
-
-          <!-- 歐亞大陸 (Eurasia) -->
-          <path d="M 440,140 C 470,100 560,80 680,85 C 800,90 880,120 890,180 C 850,220 820,250 780,260 C 740,280 690,260 660,240 C 620,210 580,220 540,190 C 500,210 460,200 440,170 Z" class="ecdis-land" />
-
-          <!-- 非洲大陸 (Africa) -->
-          <path d="M 450,200 C 510,190 550,240 550,280 C 540,340 530,400 515,430 C 480,420 440,360 430,300 C 420,250 440,210 450,200 Z" class="ecdis-land" />
-
-          <!-- 澳洲 (Australia) -->
-          <path d="M 760,350 C 830,340 860,380 850,420 C 810,440 760,430 740,390 C 740,360 755,350 760,350 Z" class="ecdis-land" />
-
-          <!-- 全球主要遠洋航運幹線 (Global Maritime Mainlines) -->
-          <!-- 1. 亞歐幹線 (經紅海/蘇伊士) -->
-          <path d="M 785,230 L 735,285 L 630,260 L 575,220 L 535,235 L 460,190 L 465,155" class="flow-line flow-active-europe" stroke="#ff9900" stroke-width="2.5" stroke-dasharray="8, 4" />
-          
-          <!-- 2. 亞歐好望角繞道動脈 (Cape of Good Hope Bypass) -->
-          <path d="M 735,285 L 640,330 L 530,410 L 515,430 L 440,370 L 410,260 L 445,195 L 465,155" class="flow-line flow-active-vlcc" stroke="#ffd700" stroke-width="2.8" stroke-dasharray="10, 5" />
-
-          <!-- 3. 跨太平洋幹線 (Transpacific to US West Coast) -->
-          <path d="M 785,230 C 850,200 930,170 960,165" class="flow-line flow-active-fareast" stroke="#00ff88" stroke-width="2.5" stroke-dasharray="8, 4" />
-          <path d="M 0,165 C 40,170 80,180 140,190" class="flow-line flow-active-fareast" stroke="#00ff88" stroke-width="2.5" stroke-dasharray="8, 4" />
-
-          <!-- 4. 美東經巴拿馬至東亞 (Panama Transpacific / LNG Route) -->
-          <path d="M 230,180 L 235,275 L 180,270 L 100,250 C 40,240 0,230 0,230" class="flow-line flow-active-feeder" stroke="#00d2ff" stroke-width="2.2" stroke-dasharray="6, 4" />
-          <path d="M 960,230 C 900,230 840,230 785,230" class="flow-line flow-active-feeder" stroke="#00d2ff" stroke-width="2.2" stroke-dasharray="6, 4" />
-
-          <!-- 5. 波斯灣至東亞原油動脈 (Persian Gulf to East Asia) -->
-          <path d="M 575,220 L 650,270 L 735,285 L 785,230 L 830,180" class="flow-line" stroke="#ffd700" stroke-width="3.2" stroke-dasharray="12, 6" />
-
-          <!-- 繪製十大海峽節點 -->
-          <g id="chokeNodesGroup">
-            ${this.renderNodesHtml()}
-          </g>
-        </svg>
-
-        <!-- 海圖浮動 HUD -->
+    container.innerHTML = `
+      <div class="global-map-wrapper">
+        <div id="globalLeafletMap" class="global-leaflet-canvas"></div>
         <div class="global-map-hud">
           <span style="color:#00ff88;">● 全球 10 大關鍵海峽咽喉</span>
           <span style="color:#ff9900;">━ 亞歐蘇伊士線</span>
@@ -98,69 +44,185 @@ class GlobalChokePointMap {
         </div>
       </div>
     `;
+
+    if (typeof L === 'undefined') {
+      console.error('Leaflet is not loaded!');
+      return;
+    }
+
+    // 初始化全球地圖，中心點對準東半球偏中東/亞洲視野 [15, 45]，Zoom 2.5
+    this.map = L.map('globalLeafletMap', {
+      center: [18.0, 40.0],
+      zoom: 2,
+      minZoom: 2,
+      maxZoom: 9,
+      zoomControl: true,
+      attributionControl: false
+    });
+
+    // 載入暗夜戰術地圖
+    L.tileLayer('https://{s}.basemaps.cartocdn.com/dark_all/{z}/{x}/{y}{r}.png', {
+      maxZoom: 18,
+      subdomains: 'abcd'
+    }).addTo(this.map);
+
+    // 繪製全球遠洋動脈
+    this.drawGlobalMainlines();
+
+    // 繪製十大海峽咽喉標記
+    this.drawChokeMarkers();
+
+    // 預設選中荷姆茲海峽
+    this.selectPoint("hormuz");
   }
 
-  renderNodesHtml() {
-    let html = '';
+  /**
+   * 繪製全球遠洋大動脈 (Real Geodesics)
+   */
+  drawGlobalMainlines() {
+    // 1. 亞歐幹線 (經馬六甲 -> 曼德海峽 -> 蘇伊士運河 -> 地中海 -> 多佛)
+    const asiaEuropeRoute = [
+      [31.2, 121.5], // 上海
+      [22.3, 114.2], // 香港
+      [1.43, 103.10], // 馬六甲
+      [5.9, 80.5],   // 斯里蘭卡
+      [12.58, 43.33], // 曼德海峽
+      [27.8, 34.3],  // 紅海
+      [30.58, 32.55], // 蘇伊士運河
+      [36.0, 15.0],  // 地中海
+      [35.96, -5.60], // 直布羅陀海峽
+      [48.0, -5.0],
+      [51.10, 1.45],  // 多佛海峽
+      [51.9, 4.3]    // 鹿特丹
+    ];
+    L.polyline(asiaEuropeRoute, {
+      color: '#ff9900',
+      weight: 3,
+      opacity: 0.85,
+      dashArray: '8, 5',
+      className: 'flow-active-europe'
+    }).addTo(this.map).bindTooltip('亞歐蘇伊士直達幹線 (Suez Mainline)', { className: 'ecdis-map-tooltip' });
+
+    // 2. 好望角繞道動脈 (Cape of Good Hope Bypass)
+    const capeBypassRoute = [
+      [1.43, 103.10], // 馬六甲海峽出口
+      [-10.0, 75.0], // 印度洋南部
+      [-25.0, 45.0], // 馬達加斯加南方
+      [-34.35, 18.47], // 好望角 (南非)
+      [-15.0, 5.0],  // 南大西洋
+      [5.0, -15.0],
+      [35.96, -5.60], // 直布羅陀
+      [51.10, 1.45]  // 鹿特丹/多佛
+    ];
+    L.polyline(capeBypassRoute, {
+      color: '#ffd700',
+      weight: 3.5,
+      opacity: 0.9,
+      dashArray: '12, 6',
+      className: 'flow-active-vlcc'
+    }).addTo(this.map).bindTooltip('好望角繞道終極動脈 (紅海危機替代航線)', { className: 'ecdis-map-tooltip' });
+
+    // 3. 波斯灣至東亞原油動脈 (Persian Gulf to East Asia)
+    const pgToAsiaRoute = [
+      [26.56, 56.25], // 荷姆茲海峽
+      [22.0, 65.0],
+      [10.0, 75.0],
+      [1.43, 103.10], // 馬六甲海峽
+      [10.0, 110.0],
+      [24.50, 119.80], // 台灣海峽
+      [31.2, 121.5], // 中國上海/寧波
+      [34.5, 138.0]  // 日本東京灣
+    ];
+    L.polyline(pgToAsiaRoute, {
+      color: '#00ff88',
+      weight: 4,
+      opacity: 0.9,
+      dashArray: '10, 5',
+      className: 'flow-active-fareast'
+    }).addTo(this.map).bindTooltip('波斯灣-東亞原油與 LNG 戰略動脈', { className: 'ecdis-map-tooltip' });
+
+    // 4. 美東至東亞巴拿馬航線 (Panama Route)
+    const panamaRoute = [
+      [40.7, -74.0], // 紐約
+      [25.0, -75.0],
+      [9.08, -79.68], // 巴拿馬運河
+      [15.0, -110.0],
+      [22.0, -140.0],
+      [24.50, 119.80] // 台灣海峽 / 東亞
+    ];
+    L.polyline(panamaRoute, {
+      color: '#00d2ff',
+      weight: 2.8,
+      opacity: 0.85,
+      dashArray: '6, 6',
+      className: 'flow-active-feeder'
+    }).addTo(this.map).bindTooltip('巴拿馬兩洋航線 (美國穀物與 LNG 運往東亞)', { className: 'ecdis-map-tooltip' });
+  }
+
+  /**
+   * 繪製十大海峽咽喉雷達排名標記
+   */
+  drawChokeMarkers() {
     const data = window.CHOKEPOINTS_DATA;
-    if (!data) return '';
+    if (!data) return;
 
     data.forEach(cp => {
       const coord = this.chokeCoords[cp.id];
       if (!coord) return;
 
-      const isRank1 = cp.rank === 1;
-      const isRank2 = cp.rank === 2;
-      const isRank3 = cp.rank === 3;
-      const nodeColor = isRank1 ? '#ffd700' : (isRank2 ? '#00ff88' : (isRank3 ? '#f43f5e' : '#38bdf8'));
-      const pulseColor = isRank1 ? 'rgba(255, 215, 0, 0.4)' : 'rgba(56, 189, 248, 0.3)';
-
-      html += `
-        <g class="global-choke-node-group" data-cp-id="${cp.id}" transform="translate(${coord.x}, ${coord.y})" style="cursor:pointer;">
-          <!-- 雷達脈動圈 -->
-          <circle cx="0" cy="0" r="14" fill="${pulseColor}" class="global-pulse-ring" />
-          <!-- 節點本體 -->
-          <circle cx="0" cy="0" r="7" fill="${nodeColor}" stroke="#ffffff" stroke-width="2.0" class="global-cp-node" id="global_node_${cp.id}" />
-          <!-- 排名徽章 -->
-          <text x="0" y="3.5" fill="#000" font-size="8" font-weight="900" text-anchor="middle" font-family="monospace">${cp.rank}</text>
-          <!-- 海峽名稱標籤 -->
-          <text x="0" y="-14" fill="#f8fafc" font-size="11" font-weight="800" text-anchor="middle" class="global-cp-label">
-            ${cp.nameZh.split('（')[0].split(' ')[0]}
-          </text>
-        </g>
+      const markerHtml = `
+        <div class="leaflet-choke-rank-marker" id="choke_dom_${cp.id}">
+          <div class="choke-pulse" style="background:${coord.color}44;"></div>
+          <div class="choke-core" style="background:${coord.color};">${coord.rank}</div>
+          <div class="choke-label">${cp.nameZh.split('（')[0].split(' ')[0]}</div>
+        </div>
       `;
-    });
-    return html;
-  }
 
-  bindEvents() {
-    const groups = this.container.querySelectorAll('.global-choke-node-group');
-    groups.forEach(g => {
-      g.addEventListener('click', () => {
-        const cpId = g.getAttribute('data-cp-id');
-        this.selectPoint(cpId);
+      const icon = L.divIcon({
+        className: 'leaflet-custom-choke-icon',
+        html: markerHtml,
+        iconSize: [28, 28],
+        iconAnchor: [14, 14]
+      });
+
+      const marker = L.marker([coord.lat, coord.lon], { icon }).addTo(this.map);
+
+      marker.on('click', () => {
+        this.selectPoint(cp.id);
         if (typeof this.options.onPointSelect === 'function') {
-          const cp = window.CHOKEPOINTS_DATA.find(x => x.id === cpId);
           this.options.onPointSelect(cp);
         }
       });
+
+      marker.bindTooltip(`
+        <div style="font-size:13px; font-weight:bold; color:#ffd700;">⚔️ #${cp.rank} ${cp.nameZh}</div>
+        <div style="font-size:11px; color:#fff;">每日原油: ${cp.dailyOilVolume.split('（')[0]}</div>
+        <div style="font-size:11px; color:#00ff88;">每日貿易額: $${cp.tradeValueNum} 億美元</div>
+        <div style="font-size:10px; color:#cbd5e1; margin-top:2px;">${cp.titleCategory}</div>
+      `, { className: 'ecdis-map-tooltip', direction: 'top' });
+
+      this.chokeMarkers[cp.id] = marker;
     });
   }
 
+  /**
+   * 選中指定咽喉海峽
+   */
   selectPoint(cpId) {
     this.activePointId = cpId;
     const cp = window.CHOKEPOINTS_DATA.find(x => x.id === cpId);
-    if (!cp) return;
+    const coord = this.chokeCoords[cpId];
+    if (!cp || !coord) return;
 
-    // 更新節點 active 樣式
-    this.container.querySelectorAll('.global-cp-node').forEach(n => {
-      n.style.transform = 'scale(1)';
-    });
-    const targetNode = document.getElementById(`global_node_${cpId}`);
-    if (targetNode) {
-      targetNode.style.transform = 'scale(1.4)';
-    }
+    // 平滑平移
+    this.map.panTo([coord.lat, coord.lon], { animate: true, duration: 0.8 });
 
+    // 更新 DOM Active 樣式
+    document.querySelectorAll('.leaflet-choke-rank-marker').forEach(el => el.classList.remove('active'));
+    const targetDom = document.getElementById(`choke_dom_${cpId}`);
+    if (targetDom) targetDom.classList.add('active');
+
+    // 觸發回調更新檔案卡片
     if (typeof this.options.onPointSelect === 'function') {
       this.options.onPointSelect(cp);
     }

@@ -4,6 +4,11 @@
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
   <title>全球關鍵海峽咽喉與航運股戰情觀測站 | Global Maritime Choke Points & Stocks Terminal</title>
+  
+  <!-- 引入 Leaflet GIS 引擎核心樣式 -->
+  <link rel="stylesheet" href="lib/leaflet/leaflet.css">
+  <link rel="stylesheet" href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css">
+  
   <!-- 引入 ECDIS 數位海圖規範與終端樣式 -->
   <link rel="stylesheet" href="css/ecdis.css">
   <link rel="stylesheet" href="css/styles.css">
@@ -69,9 +74,9 @@
       <div style="margin-bottom:12px; display:flex; justify-content:space-between; align-items:center;">
         <div>
           <h2 style="font-size:17px; font-weight:800; color:#fff; display:flex; align-items:center; gap:8px;">
-            <span>🗺️</span> 全球十大海峽咽喉與遠洋大動脈動態海圖
+            <span>🗺️</span> 全球十大海峽咽喉與遠洋大動脈動態海圖 (高精度 GIS 投影)
           </h2>
-          <span style="font-size:12px; color:#94a3b8;">點擊地圖上的海峽圓點可即時在右側檢視深度檔案與核心關聯航運股票</span>
+          <span style="font-size:12px; color:#94a3b8;">可縮放平移，點擊地圖上的海峽標記可即時在右側檢視深度檔案與核心關聯航運股票</span>
         </div>
       </div>
       <div id="globalChokeMapContainer"></div>
@@ -107,7 +112,7 @@
           <div class="controls-title">
             <span>💡 波斯灣圖層控制與光流航道切換</span>
           </div>
-          <span style="font-size:11px; color:#94a3b8;">點擊任意港口圓點可檢視深度檔案；點選下方航商可即時高亮專屬航線</span>
+          <span style="font-size:11px; color:#94a3b8;">支援滑鼠滾輪縮放、平移；點選港口圓點可檢視深度檔案；點選下方航商可即時高亮專屬航線</span>
         </div>
 
         <!-- 五大動態光流航道 Checkboxes -->
@@ -245,6 +250,14 @@
     <p>全球關鍵海峽咽喉與航運股戰情觀測站 · 遵守 IMO ECDIS S-52 數位海圖標準</p>
     <p style="margin-top:4px; color:#475569;">航海圖資僅供產業、學術與航商投資研究參考，不可作為正式船舶航行導航 (Not for Navigational Purposes)</p>
   </footer>
+
+  <!-- 引入 Leaflet 核心 JS -->
+  <script src="lib/leaflet/leaflet.js"></script>
+  <script>
+    if (typeof L === 'undefined') {
+      document.write('<script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js"><\/script>');
+    }
+  </script>
 
   <!-- 引入數據庫與邏輯腳本 -->
   <script src="js/chokepoints_data.js"></script>

@@ -35,7 +35,11 @@ document.addEventListener('DOMContentLoaded', () => {
         targetPane.classList.add('active');
       }
 
-      window.dispatchEvent(new Event('resize'));
+      setTimeout(() => {
+        if (ecdisChart && ecdisChart.map) ecdisChart.map.invalidateSize();
+        if (globalMap && globalMap.map) globalMap.map.invalidateSize();
+        window.dispatchEvent(new Event('resize'));
+      }, 150);
     });
   });
 
