@@ -3,7 +3,7 @@
 <head>
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
-  <title>波斯灣航運全景動態海圖與上市股票觀測站 | Persian Gulf Shipping Terminal</title>
+  <title>全球關鍵海峽咽喉與航運股戰情觀測站 | Global Maritime Choke Points & Stocks Terminal</title>
   <!-- 引入 ECDIS 數位海圖規範與終端樣式 -->
   <link rel="stylesheet" href="css/ecdis.css">
   <link rel="stylesheet" href="css/styles.css">
@@ -14,16 +14,16 @@
   <!-- 頂部導航列 -->
   <header class="top-nav">
     <div class="brand-section">
-      <div class="brand-logo">⚓</div>
+      <div class="brand-logo">🌐</div>
       <div class="brand-text">
-        <h1>波斯灣航運全景動態海圖與上市股票觀測站</h1>
-        <p>PERSIAN GULF SHIPPING TERMINAL · ECDIS S-52 NAUTICAL INTELLIGENCE</p>
+        <h1>全球關鍵海峽咽喉與航運股戰情觀測站</h1>
+        <p>GLOBAL MARITIME CHOKE POINTS & ECDIS NAUTICAL INTELLIGENCE TERMINAL</p>
       </div>
     </div>
     <div class="nav-meta">
       <div class="live-pill">
         <span class="live-dot"></span>
-        <span>ECDIS LIVE S-52 · TSS 荷姆茲在線</span>
+        <span>ECDIS LIVE S-52 · 全球咽喉戰情在線</span>
       </div>
       <span style="color:#64748b;">最後更新：2026-11-14</span>
     </div>
@@ -31,17 +31,20 @@
 
   <!-- 分頁切換選單 (Tab Navigation) -->
   <nav class="tabs-header">
-    <button class="tab-btn active" data-tab="tab-ecdis">
-      <span>🗺️</span> ECDIS 數位海圖與樞紐港口
+    <button class="tab-btn active" data-tab="tab-chokepoints">
+      <span>⚔️</span> 全球十大海峽咽喉比較 (哪一個最重要？)
+    </button>
+    <button class="tab-btn" data-tab="tab-ecdis">
+      <span>🗺️</span> 波斯灣-荷姆茲海峽專用 ECDIS 海圖
     </button>
     <button class="tab-btn" data-tab="tab-stocks">
-      <span>🚢</span> 航運股終端與籌碼看板
+      <span>🚢</span> 全球航運股終端與籌碼看板
     </button>
     <button class="tab-btn" data-tab="tab-directory">
       <span>📋</span> 船運公司名錄 (四大族群)
     </button>
     <button class="tab-btn" data-tab="tab-ports">
-      <span>⚓</span> 12 大樞紐港口矩陣
+      <span>⚓</span> 波斯灣 12 大樞紐港口矩陣
     </button>
     <button class="tab-btn" data-tab="tab-geopolitics">
       <span>🛡️</span> 地緣戰略戰情室
@@ -56,13 +59,53 @@
       <!-- 由 app.js 動態渲染 -->
     </section>
 
-    <!-- 分頁一：ECDIS 數位海圖與港口樞紐 -->
-    <section id="tab-ecdis" class="tab-pane active">
+    <!-- 分頁一：全球十大海峽咽喉比較 (哪一個最重要？) -->
+    <section id="tab-chokepoints" class="tab-pane active">
+      
+      <!-- 四大維度權威裁決專區 (Verdict Banner) -->
+      <div id="chokeVerdictContainer"></div>
+
+      <!-- 全球航運海峽與大動脈互動海圖 -->
+      <div style="margin-bottom:12px; display:flex; justify-content:space-between; align-items:center;">
+        <div>
+          <h2 style="font-size:17px; font-weight:800; color:#fff; display:flex; align-items:center; gap:8px;">
+            <span>🗺️</span> 全球十大海峽咽喉與遠洋大動脈動態海圖
+          </h2>
+          <span style="font-size:12px; color:#94a3b8;">點擊地圖上的海峽圓點可即時在右側檢視深度檔案與核心關聯航運股票</span>
+        </div>
+      </div>
+      <div id="globalChokeMapContainer"></div>
+
+      <!-- 排序控制列與海峽比較佈局 -->
+      <div style="margin:20px 0 14px 0; display:flex; justify-content:space-between; align-items:center; flex-wrap:wrap; gap:10px;">
+        <div style="font-size:14px; font-weight:800; color:#fff;">📊 全球海峽戰略重要性排行評估指標切換：</div>
+        <div style="display:flex; flex-wrap:wrap; gap:6px;">
+          <button class="cat-pill choke-sort-btn active" data-sort="composite">⭐ 綜合影響力評分</button>
+          <button class="cat-pill choke-sort-btn" data-sort="oil">🛢️ 每日原油流通量</button>
+          <button class="cat-pill choke-sort-btn" data-sort="trade">💰 每日貿易總額</button>
+          <button class="cat-pill choke-sort-btn" data-sort="substitute">🛑 不可替代性 (繞道代價)</button>
+          <button class="cat-pill choke-sort-btn" data-sort="geopolitical">⚠️ 地緣軍事脆弱度</button>
+        </div>
+      </div>
+
+      <!-- 雙欄佈局：左排行榜 + 右海峽檔案 -->
+      <div class="choke-compare-layout">
+        <div id="chokePointsRankList">
+          <!-- 由 app.js 動態渲染排行卡片與指標條 -->
+        </div>
+        <div id="chokeDossierPanel">
+          <!-- 由 app.js 動態渲染選中海峽檔案 -->
+        </div>
+      </div>
+    </section>
+
+    <!-- 分頁二：波斯灣區域 ECDIS 數位海圖與港口樞紐 -->
+    <section id="tab-ecdis" class="tab-pane">
       <!-- 航道與航商互動控制列 -->
       <div class="chart-controls-panel">
         <div class="controls-header">
           <div class="controls-title">
-            <span>💡 互動海圖圖層控制與光流航道切換</span>
+            <span>💡 波斯灣圖層控制與光流航道切換</span>
           </div>
           <span style="font-size:11px; color:#94a3b8;">點擊任意港口圓點可檢視深度檔案；點選下方航商可即時高亮專屬航線</span>
         </div>
@@ -115,53 +158,47 @@
             <button class="carrier-chip-btn" data-carrier-id="frontline">前線海運 (Frontline)</button>
             <button class="carrier-chip-btn" data-carrier-id="dht">DHT 控股 (DHT)</button>
             <button class="carrier-chip-btn" data-carrier-id="euronav">歐航 (CMB.TECH)</button>
-            <button class="carrier-chip-btn" data-carrier-id="adnoc_ls">阿布達比國油海運 (ADNOCLS)</button>
+            <button class="carrier-chip-btn" data-carrier-id="adnoc_ls">阿布達比國油 (ADNOCLS)</button>
             <button class="carrier-chip-btn" data-carrier-id="nakilat">卡達天然氣 (Nakilat)</button>
             <button class="carrier-chip-btn" data-carrier-id="unifeeder">優聯支線 (Unifeeder)</button>
           </div>
         </div>
 
-        <!-- 航商高亮提示 Banner -->
         <div id="carrierNoticeBox" style="display:none; margin-top:12px; padding:10px 14px; background:rgba(2,132,199,0.15); border:1px solid rgba(56,189,248,0.3); border-radius:6px;"></div>
       </div>
 
       <!-- 海圖與右側港口檔案雙欄佈局 -->
       <div class="chart-layout-grid">
-        <div id="ecdisChartContainer">
-          <!-- 由 ecdis_chart.js 渲染 -->
-        </div>
-        <div id="portDossierPanel">
-          <!-- 由 app.js 渲染選中港口資訊 -->
-        </div>
+        <div id="ecdisChartContainer"></div>
+        <div id="portDossierPanel"></div>
       </div>
     </section>
 
-    <!-- 分頁二：國內外上市航運股票終端 -->
+    <!-- 分頁三：全球上市航運股票終端 -->
     <section id="tab-stocks" class="tab-pane">
       <div class="stock-filters-bar">
         <div class="stock-category-pills">
           <button class="cat-pill active" data-cat="all">全部航運股 (All)</button>
-          <button class="cat-pill" data-cat="taiwan">🇹🇼 台灣上市航運 (長榮/萬海/陽明/新興/裕民)</button>
-          <button class="cat-pill" data-cat="container">🌍 全球貨櫃巨頭 (Maersk/Hapag/COSCO/HMM)</button>
-          <button class="cat-pill" data-cat="tanker_vlcc">🛢️ 超大型原油輪 VLCC (Frontline/DHT/Bahri/ADNOC)</button>
+          <button class="cat-pill" data-cat="taiwan">🇹🇼 台灣上市航運 (長榮/萬海/陽明/新興/裕民/慧洋)</button>
+          <button class="cat-pill" data-cat="container">🌍 全球貨櫃巨頭 (Maersk/Hapag/COSCO/ZIM)</button>
+          <button class="cat-pill" data-cat="tanker_vlcc">🛢️ 超大型油輪 VLCC / 成品油 (Frontline/DHT/Scorpio)</button>
+          <button class="cat-pill" data-cat="dry_bulk">🏗️ 全球大宗散裝 (Star Bulk/Golden Ocean/裕民/慧洋)</button>
           <button class="cat-pill" data-cat="lng_gas">❄️ LNG / LPG 氣體船隊 (Nakilat/BW LPG)</button>
-          <button class="cat-pill" data-cat="regional_feeder">🇦🇪 中東本土上市港口 (AD Ports/Milaha)</button>
+          <button class="cat-pill" data-cat="ports_logistics">🇦🇪 中東本土上市港口 (AD Ports/Milaha)</button>
         </div>
         <div>
-          <input type="text" id="stockSearchInput" class="search-input-box" placeholder="🔍 搜尋股票代號、公司名稱或國別...">
+          <input type="text" id="stockSearchInput" class="search-input-box" placeholder="🔍 搜尋代號、公司名稱、國別或海峽...">
         </div>
       </div>
 
       <!-- 股票卡片網格 -->
-      <div class="stocks-grid" id="stocksGrid">
-        <!-- 由 app.js 動態渲染 -->
-      </div>
+      <div class="stocks-grid" id="stocksGrid"></div>
 
       <!-- 股票橫向財務與船隊規模比較大表 -->
       <div class="table-card">
         <div style="padding:14px 18px; background:#0a1424; border-bottom:1px solid var(--border-subtle); display:flex; justify-content:space-between; align-items:center;">
-          <h3 style="font-size:15px; font-weight:800; color:#fff;">📊 全球通往中東波斯灣航運上市公司橫向財務與籌碼指標矩陣</h3>
-          <span style="font-size:11px; color:#94a3b8;">含估值、股息、波斯灣運力比重與主力籌碼信號</span>
+          <h3 style="font-size:15px; font-weight:800; color:#fff;">📊 全球重要航運上市公司橫向財務與籌碼指標矩陣</h3>
+          <span style="font-size:11px; color:#94a3b8;">含估值、股息、航線權重與主力籌碼信號</span>
         </div>
         <div class="responsive-table-wrapper">
           <table class="custom-stock-table">
@@ -175,53 +212,47 @@
                 <th>漲跌幅 (%)</th>
                 <th>本益比 (P/E)</th>
                 <th>股息殖利率</th>
-                <th>波斯灣運力權重</th>
+                <th>運力比重</th>
                 <th>主力籌碼信號</th>
                 <th>操作連動</th>
               </tr>
             </thead>
-            <tbody id="stocksTableBody">
-              <!-- 由 app.js 動態渲染 -->
-            </tbody>
+            <tbody id="stocksTableBody"></tbody>
           </table>
         </div>
       </div>
     </section>
 
-    <!-- 分頁三：全球通往中東波斯灣船運公司名錄 -->
+    <!-- 分頁四：全球船運公司名錄 -->
     <section id="tab-directory" class="tab-pane">
-      <div id="shippingDirectoryContainer">
-        <!-- 由 app.js 動態渲染四大族群卡片 -->
-      </div>
+      <div id="shippingDirectoryContainer"></div>
     </section>
 
-    <!-- 分頁四：12 大樞紐港口矩陣 -->
+    <!-- 分頁五：12 大樞紐港口矩陣 -->
     <section id="tab-ports" class="tab-pane">
-      <div id="portsMatrixContainer">
-        <!-- 由 app.js 動態渲染 12 大港口全覽卡片 -->
-      </div>
+      <div id="portsMatrixContainer"></div>
     </section>
 
-    <!-- 分頁五：地緣戰略戰情室 -->
+    <!-- 分頁六：地緣戰略戰情室 -->
     <section id="tab-geopolitics" class="tab-pane">
-      <div id="geopoliticsContainer">
-        <!-- 由 app.js 動態渲染三大地緣戰略分析與戰險指標 -->
-      </div>
+      <div id="geopoliticsContainer"></div>
     </section>
 
   </main>
 
   <!-- 頁尾 -->
   <footer class="hub-footer">
-    <p>波斯灣航運全景動態海圖與上市股票觀測站 (Persian Gulf Shipping Terminal) · 遵守 IMO ECDIS S-52 數位海圖標準</p>
+    <p>全球關鍵海峽咽喉與航運股戰情觀測站 · 遵守 IMO ECDIS S-52 數位海圖標準</p>
     <p style="margin-top:4px; color:#475569;">航海圖資僅供產業、學術與航商投資研究參考，不可作為正式船舶航行導航 (Not for Navigational Purposes)</p>
   </footer>
 
   <!-- 引入數據庫與邏輯腳本 -->
+  <script src="js/chokepoints_data.js"></script>
   <script src="js/ports_data.js"></script>
   <script src="js/shipping_data.js"></script>
   <script src="js/stocks_data.js"></script>
   <script src="js/geopolitics_data.js"></script>
+  <script src="js/global_chokepoint_map.js"></script>
   <script src="js/ecdis_chart.js"></script>
   <script src="js/app.js"></script>
 </body>

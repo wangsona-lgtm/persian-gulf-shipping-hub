@@ -773,3 +773,179 @@ body {
   font-size: 12px;
   font-family: var(--font-mono);
 }
+
+/* ==========================================================================
+   全球航運咽喉與海峽重要性比較模組樣式 (Global Choke Points Comparator)
+   ========================================================================== */
+
+.global-map-viewport {
+  position: relative;
+  width: 100%;
+  height: 480px;
+  background: radial-gradient(circle at 50% 50%, #0a192f 0%, #050d18 100%);
+  border-radius: 12px;
+  overflow: hidden;
+  border: 1px solid var(--border-subtle);
+  box-shadow: 0 12px 36px rgba(0, 0, 0, 0.6);
+  margin-bottom: 24px;
+}
+.global-svg-chart {
+  width: 100%;
+  height: 100%;
+  display: block;
+  user-select: none;
+}
+.global-pulse-ring {
+  animation: globalPulse 2.2s infinite ease-out;
+  transform-origin: center;
+}
+@keyframes globalPulse {
+  0% { r: 6; opacity: 0.8; }
+  100% { r: 22; opacity: 0; }
+}
+.global-cp-node {
+  transition: transform 0.25s ease, filter 0.25s ease;
+  filter: drop-shadow(0 0 6px rgba(56, 189, 248, 0.6));
+}
+.global-cp-node:hover {
+  filter: drop-shadow(0 0 14px #ffffff) !important;
+}
+.global-cp-label {
+  pointer-events: none;
+  filter: drop-shadow(0 2px 4px rgba(0, 0, 0, 0.9));
+}
+.global-map-hud {
+  position: absolute;
+  bottom: 12px;
+  left: 18px;
+  background: rgba(10, 18, 32, 0.85);
+  border: 1px solid rgba(56, 189, 248, 0.3);
+  padding: 6px 14px;
+  border-radius: 6px;
+  font-size: 11px;
+  font-family: var(--font-mono);
+  display: flex;
+  gap: 14px;
+  backdrop-filter: blur(8px);
+}
+
+/* 咽喉排行榜與詳細比較卡片佈局 */
+.choke-compare-layout {
+  display: grid;
+  grid-template-columns: 1fr 420px;
+  gap: 24px;
+  margin-bottom: 30px;
+}
+@media (max-width: 1100px) {
+  .choke-compare-layout {
+    grid-template-columns: 1fr;
+  }
+}
+
+.choke-rank-card {
+  background: var(--bg-card);
+  border: 1px solid var(--border-subtle);
+  border-radius: 10px;
+  padding: 16px 20px;
+  margin-bottom: 12px;
+  cursor: pointer;
+  transition: all 0.2s ease;
+  position: relative;
+  overflow: hidden;
+}
+.choke-rank-card:hover, .choke-rank-card.active {
+  border-color: #38bdf8;
+  background: var(--bg-card-hover);
+  box-shadow: 0 6px 20px rgba(14, 165, 233, 0.25);
+  transform: translateX(4px);
+}
+.choke-rank-card::before {
+  content: '';
+  position: absolute;
+  top: 0;
+  left: 0;
+  width: 4px;
+  height: 100%;
+  background: #38bdf8;
+}
+.choke-rank-badge {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  width: 26px;
+  height: 26px;
+  border-radius: 50%;
+  font-weight: 900;
+  font-size: 13px;
+  font-family: var(--font-mono);
+  margin-right: 10px;
+}
+.rank-badge-1 { background: #ffd700; color: #000; box-shadow: 0 0 10px #ffd700; }
+.rank-badge-2 { background: #00ff88; color: #000; box-shadow: 0 0 8px #00ff88; }
+.rank-badge-3 { background: #f43f5e; color: #fff; box-shadow: 0 0 8px #f43f5e; }
+.rank-badge-other { background: rgba(56, 189, 248, 0.2); color: #38bdf8; border: 1px solid rgba(56, 189, 248, 0.4); }
+
+.choke-metrics-bar-group {
+  margin-top: 10px;
+}
+.metric-bar-item {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  margin-bottom: 6px;
+  font-size: 11px;
+}
+.bar-track {
+  flex: 1;
+  height: 6px;
+  background: rgba(255, 255, 255, 0.08);
+  border-radius: 3px;
+  margin: 0 10px;
+  overflow: hidden;
+}
+.bar-fill {
+  height: 100%;
+  border-radius: 3px;
+  transition: width 0.5s ease;
+}
+
+/* 終極裁決卡片 (Verdict Section) */
+.verdict-banner-box {
+  background: linear-gradient(135deg, rgba(14, 165, 233, 0.15), rgba(168, 85, 247, 0.15));
+  border: 1px solid rgba(56, 189, 248, 0.4);
+  border-radius: 12px;
+  padding: 24px;
+  margin-bottom: 28px;
+  box-shadow: 0 8px 30px rgba(0, 0, 0, 0.5);
+}
+.verdict-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(280px, 1fr));
+  gap: 16px;
+  margin-top: 18px;
+}
+.verdict-item-card {
+  background: rgba(10, 18, 32, 0.7);
+  border: 1px solid rgba(255, 255, 255, 0.08);
+  border-radius: 8px;
+  padding: 16px;
+  border-top: 3px solid #38bdf8;
+}
+.verdict-dimension-title {
+  font-size: 12px;
+  color: var(--text-muted);
+  text-transform: uppercase;
+  letter-spacing: 0.5px;
+  margin-bottom: 4px;
+}
+.verdict-champion {
+  font-size: 16px;
+  font-weight: 800;
+  color: #fff;
+  margin-bottom: 8px;
+}
+.verdict-reason {
+  font-size: 12px;
+  line-height: 1.6;
+  color: #cbd5e1;
+}

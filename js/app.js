@@ -1,17 +1,24 @@
 /**
- * 波斯灣航運與地緣戰情觀測站主控制器 (App Main Controller)
- * 負責分頁調度、海圖與股票連動、即時篩選與數據矩陣渲染
+ * 全球航運咽喉與海峽重要性觀測站主控制器 (App Main Controller)
+ * 負責分頁調度、波斯灣 ECDIS 與全球航運海圖雙引擎、海峽咽喉比較器與股票連動
  */
 
 document.addEventListener('DOMContentLoaded', () => {
-  // 1. 初始化 ECDIS 數位海圖
-  const chart = new ECDISChart('ecdisChartContainer', {
+  // 1. 初始化波斯灣區域 ECDIS 數位海圖
+  const ecdisChart = new ECDISChart('ecdisChartContainer', {
     onPortSelect: (port) => {
       renderPortDossier(port);
     }
   });
 
-  // 2. 初始化頂部導航分頁 (Tab Switching)
+  // 2. 初始化全球海峽咽喉互動海圖
+  const globalMap = new GlobalChokePointMap('globalChokeMapContainer', {
+    onPointSelect: (point) => {
+      renderChokeDossier(point);
+    }
+  });
+
+  // 3. 頂部導航分頁 (Tab Switching)
   const tabBtns = document.querySelectorAll('.tab-btn');
   const tabPanes = document.querySelectorAll('.tab-pane');
 
@@ -28,67 +35,280 @@ document.addEventListener('DOMContentLoaded', () => {
         targetPane.classList.add('active');
       }
 
-      // 如果切換回海圖分頁，重整地圖尺寸
-      if (targetTab === 'tab-ecdis') {
-        window.dispatchEvent(new Event('resize'));
-      }
+      window.dispatchEvent(new Event('resize'));
     });
   });
 
-  // 3. 航道切換 Checkbox 事件綁定
+  // 4. 波斯灣航道切換 Checkbox 事件綁定
   const laneCheckboxes = document.querySelectorAll('.lane-toggle-cb');
   laneCheckboxes.forEach(cb => {
     cb.addEventListener('change', (e) => {
       const laneId = e.target.getAttribute('data-lane-id');
-      chart.toggleLane(laneId, e.target.checked);
+      ecdisChart.toggleLane(laneId, e.target.checked);
     });
   });
 
-  // 4. 船商快速高亮選擇器事件綁定
+  // 5. 船商快速高亮選擇器事件綁定
   const carrierPills = document.querySelectorAll('.carrier-chip-btn');
   carrierPills.forEach(pill => {
     pill.addEventListener('click', () => {
       carrierPills.forEach(p => p.classList.remove('active'));
       pill.classList.add('active');
       const carrierId = pill.getAttribute('data-carrier-id');
-      chart.highlightCarrier(carrierId);
+      ecdisChart.highlightCarrier(carrierId);
       updateCarrierNotice(carrierId);
     });
   });
 
-  // 5. 渲染各模組數據
+  // 6. 渲染各模組數據
   renderKpiSummary();
+  renderChokePointsSection(globalMap);
   renderStocksSection();
   renderDirectorySection();
   renderPortsMatrixSection();
   renderGeopoliticsSection();
 
-  // 6. 註冊全局「股票連動海圖」按鈕功能
+  // 7. 全局「股票連動海圖」按鈕功能
   window.syncStockToChart = function(carrierId, portId) {
-    // 切換至海圖分頁
     const ecdisTabBtn = document.querySelector('.tab-btn[data-tab="tab-ecdis"]');
     if (ecdisTabBtn) ecdisTabBtn.click();
 
-    // 觸發航商高亮
     if (carrierId) {
       const targetPill = document.querySelector(`.carrier-chip-btn[data-carrier-id="${carrierId}"]`);
       if (targetPill) {
         carrierPills.forEach(p => p.classList.remove('active'));
         targetPill.classList.add('active');
       }
-      chart.highlightCarrier(carrierId);
+      ecdisChart.highlightCarrier(carrierId);
       updateCarrierNotice(carrierId);
     }
 
-    // 若有指定港口，選中該港口
     if (portId) {
-      chart.selectPort(portId);
+      ecdisChart.selectPort(portId);
     }
 
-    // 平滑滾動到海圖頂端
+    window.scrollTo({ top: 0, behavior: 'smooth' });
+  };
+
+  // 8. 全局「跳轉特定海峽咽喉」按鈕功能
+  window.jumpToChokePoint = function(chokeId) {
+    const chokeTabBtn = document.querySelector('.tab-btn[data-tab="tab-chokepoints"]');
+    if (chokeTabBtn) chokeTabBtn.click();
+
+    globalMap.selectPoint(chokeId);
+    const cp = window.CHOKEPOINTS_DATA.find(x => x.id === chokeId);
+    if (cp) renderChokeDossier(cp);
+
     window.scrollTo({ top: 0, behavior: 'smooth' });
   };
 });
+
+/**
+ * 渲染「全球海峽咽喉比較器」模組 (Choke Points Comparator)
+ */
+function renderChokePointsSection(globalMap) {
+  const rankListContainer = document.getElementById('chokePointsRankList');
+  const verdictContainer = document.getElementById('chokeVerdictContainer');
+  if (!rankListContainer || !window.CHOKEPOINTS_DATA) return;
+
+  // 渲染四大維度權威裁決專區
+  if (verdictContainer && window.CHOKEPOINT_VERDICT_ANALYSIS) {
+    const vData = window.CHOKEPOINT_VERDICT_ANALYSIS;
+    verdictContainer.innerHTML = `
+      <div class="verdict-banner-box">
+        <h2 style="font-size:20px; font-weight:800; color:#fff; display:flex; align-items:center; gap:8px;">
+          <span>⚖️</span> ${vData.title}
+        </h2>
+        <p style="color:#cbd5e1; font-size:13px; margin-top:4px;">${vData.summary}</p>
+        
+        <div class="verdict-grid">
+          ${vData.dimensions.map(dim => `
+            <div class="verdict-item-card">
+              <div class="verdict-dimension-title">${dim.dimension}</div>
+              <div class="verdict-champion">${dim.champion}</div>
+              <div class="verdict-reason">${dim.reason}</div>
+            </div>
+          `).join('')}
+        </div>
+      </div>
+    `;
+  }
+
+  // 排序狀態
+  let currentSort = 'composite';
+
+  function displayRanks() {
+    let list = [...window.CHOKEPOINTS_DATA];
+    if (currentSort === 'composite') {
+      list.sort((a, b) => b.compositeScore - a.compositeScore);
+    } else if (currentSort === 'oil') {
+      list.sort((a, b) => b.dailyOilNum - a.dailyOilNum);
+    } else if (currentSort === 'trade') {
+      list.sort((a, b) => b.tradeValueNum - a.tradeValueNum);
+    } else if (currentSort === 'substitute') {
+      list.sort((a, b) => b.substitutabilityScore - a.substitutabilityScore);
+    } else if (currentSort === 'geopolitical') {
+      list.sort((a, b) => b.geopoliticalRiskScore - a.geopoliticalRiskScore);
+    }
+
+    rankListContainer.innerHTML = list.map((cp, idx) => {
+      let badgeClass = 'rank-badge-other';
+      if (cp.rank === 1) badgeClass = 'rank-badge-1';
+      else if (cp.rank === 2) badgeClass = 'rank-badge-2';
+      else if (cp.rank === 3) badgeClass = 'rank-badge-3';
+
+      return `
+        <div class="choke-rank-card ${cp.id === globalMap.activePointId ? 'active' : ''}" data-cp-id="${cp.id}">
+          <div style="display:flex; justify-content:space-between; align-items:flex-start;">
+            <div style="display:flex; align-items:center;">
+              <span class="choke-rank-badge ${badgeClass}">${cp.rank}</span>
+              <div>
+                <h3 style="font-size:16px; font-weight:800; color:#fff;">${cp.nameZh}</h3>
+                <div style="font-size:11px; color:#94a3b8; font-family:var(--font-mono);">${cp.location}</div>
+              </div>
+            </div>
+            <div style="text-align:right;">
+              <span style="font-size:11px; padding:2px 8px; border-radius:12px; background:rgba(14,165,233,0.15); color:#38bdf8; font-weight:700;">
+                綜合評分: ${cp.compositeScore}
+              </span>
+            </div>
+          </div>
+
+          <div style="margin-top:10px; font-size:12px; color:#cbd5e1;">
+            <strong>定位：</strong> <span style="color:#00ff88;">${cp.titleCategory}</span>
+          </div>
+
+          <!-- 視覺化指標長條 (Comparison Bars) -->
+          <div class="choke-metrics-bar-group">
+            <div class="metric-bar-item">
+              <span style="color:#94a3b8;">原油流通量</span>
+              <div class="bar-track">
+                <div class="bar-fill" style="width:${(cp.dailyOilNum / 21) * 100}%; background:#ffd700;"></div>
+              </div>
+              <span style="font-family:monospace; color:#ffd700;">${cp.dailyOilVolume.split('（')[0]}</span>
+            </div>
+            <div class="metric-bar-item">
+              <span style="color:#94a3b8;">每日貿易額</span>
+              <div class="bar-track">
+                <div class="bar-fill" style="width:${(cp.tradeValueNum / 95) * 100}%; background:#00ff88;"></div>
+              </div>
+              <span style="font-family:monospace; color:#00ff88;">$${cp.tradeValueNum}B/日</span>
+            </div>
+            <div class="metric-bar-item">
+              <span style="color:#94a3b8;">不可替代性</span>
+              <div class="bar-track">
+                <div class="bar-fill" style="width:${cp.substitutabilityScore}%; background:#f43f5e;"></div>
+              </div>
+              <span style="font-family:monospace; color:#f43f5e;">${cp.substitutabilityScore}分</span>
+            </div>
+          </div>
+        </div>
+      `;
+    }).join('');
+
+    // 點擊卡片切換
+    rankListContainer.querySelectorAll('.choke-rank-card').forEach(card => {
+      card.addEventListener('click', () => {
+        const cpId = card.getAttribute('data-cp-id');
+        rankListContainer.querySelectorAll('.choke-rank-card').forEach(c => c.classList.remove('active'));
+        card.classList.add('active');
+        globalMap.selectPoint(cpId);
+        const cp = window.CHOKEPOINTS_DATA.find(x => x.id === cpId);
+        if (cp) renderChokeDossier(cp);
+      });
+    });
+  }
+
+  // 排序按鈕監聽
+  const sortBtns = document.querySelectorAll('.choke-sort-btn');
+  sortBtns.forEach(btn => {
+    btn.addEventListener('click', () => {
+      sortBtns.forEach(b => b.classList.remove('active'));
+      btn.classList.add('active');
+      currentSort = btn.getAttribute('data-sort');
+      displayRanks();
+    });
+  });
+
+  displayRanks();
+  // 預設渲染第一名荷姆茲海峽檔案
+  const firstPoint = window.CHOKEPOINTS_DATA.find(x => x.id === 'hormuz');
+  if (firstPoint) renderChokeDossier(firstPoint);
+}
+
+/**
+ * 渲染右側海峽深度檔案面板 (Choke Point Dossier Panel)
+ */
+function renderChokeDossier(cp) {
+  const panel = document.getElementById('chokeDossierPanel');
+  if (!panel || !cp) return;
+
+  const stocksHtml = cp.coreAffectedStocks.map(ticker => `
+    <span class="carrier-tag" style="cursor:pointer;" onclick="filterStocksByTicker('${ticker}')">${ticker}</span>
+  `).join('');
+
+  panel.innerHTML = `
+    <div class="port-dossier-card" style="border-top: 3px solid #38bdf8;">
+      <div style="display:flex; justify-content:space-between; align-items:center;">
+        <span class="dossier-badge" style="background:rgba(234,179,8,0.2); color:#ffd700;">全球戰略排名 #${cp.rank}</span>
+        <span style="font-family:monospace; font-size:12px; color:#38bdf8; font-weight:700;">綜合評分: ${cp.compositeScore}</span>
+      </div>
+
+      <h2 class="dossier-name-zh" style="margin-top:6px;">⚔️ ${cp.nameZh}</h2>
+      <div class="dossier-name-en">${cp.nameEn} · ${cp.location}</div>
+
+      <div class="dossier-stats-grid">
+        <div class="dossier-stat-item">
+          <div class="dossier-stat-label">每日原油流通</div>
+          <div class="dossier-stat-val" style="color:#ffd700;">${cp.dailyOilVolume.split('（')[0]}</div>
+        </div>
+        <div class="dossier-stat-item">
+          <div class="dossier-stat-label">每日貿易總額</div>
+          <div class="dossier-stat-val" style="color:#00ff88;">$${cp.tradeValueNum} 億美元</div>
+        </div>
+        <div class="dossier-stat-item">
+          <div class="dossier-stat-label">全球海運噸位比重</div>
+          <div class="dossier-stat-val">${cp.globalCargoShare}</div>
+        </div>
+        <div class="dossier-stat-item">
+          <div class="dossier-stat-label">最窄水道寬度</div>
+          <div class="dossier-stat-val">${cp.widthNarrowest}</div>
+        </div>
+      </div>
+
+      <div class="dossier-section-title">📊 替代難易度與代價（不可替代分：${cp.substitutabilityScore}/100）</div>
+      <div style="font-size:12px; line-height:1.6; color:#cbd5e1; background:rgba(15,23,42,0.6); padding:8px 10px; border-radius:6px; margin-bottom:10px;">
+        ${cp.substitutabilityDesc}
+      </div>
+
+      <div class="dossier-section-title">⚠️ 地緣軍事風險（脆弱度評分：${cp.geopoliticalRiskScore}/100）</div>
+      <div style="font-size:12px; line-height:1.6; color:#fca5a5; background:rgba(239,68,68,0.1); padding:8px 10px; border-radius:6px; margin-bottom:10px; border-left:3px solid #f43f5e;">
+        ${cp.geopoliticalRiskDesc}
+      </div>
+
+      <div class="dossier-section-title">🏆 「是否為最重要海峽？」權威結論</div>
+      <div class="dossier-role-text" style="border-left-color:#ffd700;">
+        ${cp.verdict}
+      </div>
+
+      <div class="dossier-section-title" style="margin-top:14px;">📈 關聯航運上市公司 (點擊查看)</div>
+      <div class="dossier-carriers-tags">${stocksHtml}</div>
+    </div>
+  `;
+}
+
+/**
+ * 依股票代號跳轉並篩選
+ */
+window.filterStocksByTicker = function(ticker) {
+  const stockTabBtn = document.querySelector('.tab-btn[data-tab="tab-stocks"]');
+  if (stockTabBtn) stockTabBtn.click();
+  const searchInput = document.getElementById('stockSearchInput');
+  if (searchInput) {
+    searchInput.value = ticker.split('.')[0];
+    searchInput.dispatchEvent(new Event('input'));
+  }
+};
 
 /**
  * 渲染右側港口卡片 (Port Dossier Panel)
@@ -171,7 +391,7 @@ function updateCarrierNotice(carrierId) {
       <div>
         <strong style="color:${carrier.color}; font-size:13px;">🚢 ${carrier.nameZh} (${carrier.nameEn})</strong>
         <span style="margin-left:8px; font-size:11px; color:#cbd5e1;">聯盟: ${carrier.alliance}</span>
-        <span style="margin-left:8px; font-size:11px; color:#38bdf8;">波斯灣主力停靠港: ${portsStr}</span>
+        <span style="margin-left:8px; font-size:11px; color:#38bdf8;">主力停靠港: ${portsStr}</span>
       </div>
       <span style="font-size:11px; color:#94a3b8;">股票: <strong>${carrier.stockTicker}</strong></span>
     </div>
@@ -216,10 +436,12 @@ function renderStocksSection() {
         list = list.filter(s => s.sector === 'container');
       } else if (currentCategory === 'tanker_vlcc') {
         list = list.filter(s => s.sector === 'tanker_vlcc');
+      } else if (currentCategory === 'dry_bulk') {
+        list = list.filter(s => s.sector === 'dry_bulk');
       } else if (currentCategory === 'lng_gas') {
         list = list.filter(s => s.sector === 'lng_gas');
-      } else if (currentCategory === 'regional_feeder') {
-        list = list.filter(s => s.sector === 'regional_feeder');
+      } else if (currentCategory === 'ports_logistics') {
+        list = list.filter(s => s.sector === 'ports_logistics');
       }
     }
 
@@ -238,6 +460,12 @@ function renderStocksSection() {
       const isUp = stock.changePct >= 0;
       const chgClass = isUp ? 'up' : 'down';
       const chgSign = isUp ? '+' : '';
+
+      const cpTagsHtml = (stock.chokepoints || []).map(cpId => {
+        const cp = (window.CHOKEPOINTS_DATA || []).find(x => x.id === cpId);
+        const name = cp ? cp.nameZh.split('（')[0].split(' ')[0] : cpId;
+        return `<span class="carrier-tag" style="cursor:pointer; background:rgba(234,179,8,0.15); color:#ffd700;" onclick="jumpToChokePoint('${cpId}')">${name}</span>`;
+      }).join(' ');
 
       return `
         <div class="stock-card">
@@ -268,8 +496,10 @@ function renderStocksSection() {
           </div>
 
           <div class="stock-gulf-exposure">
-            <div>🚢 <strong>波斯灣運力/業務佔比:</strong> <span class="gulf-share-highlight">${stock.gulfSharePct}</span></div>
-            <div style="margin-top:2px; color:#cbd5e1;">航線與掛靠: ${stock.gulfLoops}</div>
+            <div>🚢 <strong>運力/航線比重:</strong> <span class="gulf-share-highlight">${stock.gulfSharePct}</span></div>
+            <div style="margin-top:4px; display:flex; align-items:center; flex-wrap:wrap; gap:4px;">
+              <span style="color:#94a3b8; font-size:10px;">涉險海峽:</span> ${cpTagsHtml}
+            </div>
           </div>
 
           <div class="stock-chips-panel">
@@ -342,21 +572,23 @@ function mapStockToCarrier(stockId) {
     "2603": "evergreen",
     "2615": "wan_hai",
     "2609": "yang_ming",
-    "2605": "frontline", // 租入油輪聯營池，以原油航線高亮
+    "2605": "frontline",
     "2606": "wan_hai",
+    "2637": "wan_hai",
     "maersk_stock": "maersk",
     "hapag_stock": "hapag_lloyd",
     "cosco_stock": "cosco",
-    "hmm_stock": "hmm",
-    "mol_stock": "one",
+    "zim_stock": "msc",
     "frontline_stock": "frontline",
     "dht_stock": "dht",
-    "cmbt_stock": "euronav",
-    "bahri_stock": "bahri",
-    "adnocls_stock": "adnoc_ls",
+    "stng_stock": "frontline",
+    "sblk_stock": "wan_hai",
+    "gogl_stock": "frontline",
+    "wawi_stock": "one",
     "nakilat_stock": "nakilat",
     "bwlp_stock": "bw_group",
-    "milaha_stock": "milaha",
+    "bahri_stock": "bahri",
+    "adnocls_stock": "adnoc_ls",
     "adports_stock": "adnoc_ls"
   };
   return map[stockId] || "all";
