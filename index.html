@@ -45,6 +45,15 @@
     <button class="tab-btn" data-tab="tab-stocks">
       <span>🚢</span> 全球航運股終端與籌碼看板
     </button>
+    <button class="tab-btn" data-tab="tab-freight">
+      <span>📈</span> 全球三大運價指數大盤
+    </button>
+    <button class="tab-btn" data-tab="tab-calculator">
+      <span>🧮</span> 繞道成本與損益試算器
+    </button>
+    <button class="tab-btn" data-tab="tab-orderbook">
+      <span>🏗️</span> 船隊供需與手持訂單比
+    </button>
     <button class="tab-btn" data-tab="tab-directory">
       <span>📋</span> 船運公司名錄 (四大族群)
     </button>
@@ -243,6 +252,21 @@
       <div id="geopoliticsContainer"></div>
     </section>
 
+    <!-- 分頁七：全球三大運價指數即時大盤 (Module 1) -->
+    <section id="tab-freight" class="tab-pane">
+      <div id="freightBenchmarksContainer"></div>
+    </section>
+
+    <!-- 分頁八：海峽繞道成本與航期互動試算器 (Module 2) -->
+    <section id="tab-calculator" class="tab-pane">
+      <div id="detourCalculatorContainer"></div>
+    </section>
+
+    <!-- 分頁九：全球船隊供需剪刀差與手持訂單比 (Module 3) -->
+    <section id="tab-orderbook" class="tab-pane">
+      <div id="orderbookContainer"></div>
+    </section>
+
   </main>
 
   <!-- 頁尾 -->
@@ -265,6 +289,9 @@
   <script src="js/shipping_data.js"></script>
   <script src="js/stocks_data.js"></script>
   <script src="js/geopolitics_data.js"></script>
+  <script src="js/freight_indices_data.js"></script>
+  <script src="js/calculator.js"></script>
+  <script src="js/orderbook_data.js"></script>
   <script src="js/global_chokepoint_map.js"></script>
   <script src="js/ecdis_chart.js"></script>
   <script src="js/app.js"></script>

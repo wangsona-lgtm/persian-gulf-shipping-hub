@@ -68,11 +68,26 @@ document.addEventListener('DOMContentLoaded', () => {
   renderKpiSummary();
   renderChokePointsSection(globalMap);
   renderStocksSection();
+  renderFreightSection();
+  renderCalculatorSection();
+  renderOrderbookSection();
   renderDirectorySection();
   renderPortsMatrixSection();
   renderGeopoliticsSection();
 
-  // 7. 全局「股票連動海圖」按鈕功能
+  // 7. 全局「點選股票代號跳轉並篩選」
+  window.filterStocksByTicker = function(ticker) {
+    const stockTabBtn = document.querySelector('.tab-btn[data-tab="tab-stocks"]');
+    if (stockTabBtn) stockTabBtn.click();
+    const searchInput = document.getElementById('stockSearchInput');
+    if (searchInput) {
+      searchInput.value = ticker.split(' ')[0];
+      searchInput.dispatchEvent(new Event('input'));
+    }
+    window.scrollTo({ top: 0, behavior: 'smooth' });
+  };
+
+  // 8. 全局「股票連動海圖」按鈕功能
   window.syncStockToChart = function(carrierId, portId) {
     const ecdisTabBtn = document.querySelector('.tab-btn[data-tab="tab-ecdis"]');
     if (ecdisTabBtn) ecdisTabBtn.click();
@@ -731,5 +746,424 @@ function renderGeopoliticsSection() {
         </div>
       </div>
     `).join('')}
+  `;
+}
+
+/** ==========================================================================
+ * 模組一：全球航運三大基準運價指數即時大盤渲染 (Freight Rate Benchmarks)
+ * ========================================================================== */
+function renderFreightSection() {
+  const container = document.getElementById('freightBenchmarksContainer');
+  if (!container || !window.FREIGHT_INDICES_DATA) return;
+
+  const data = window.FREIGHT_INDICES_DATA;
+  const groups = [data.container, data.tanker, data.dryBulk];
+
+  let html = `
+    <div style="margin-bottom:20px; padding:14px 18px; background:rgba(14,165,233,0.1); border:1px solid rgba(56,189,248,0.3); border-radius:10px; display:flex; justify-content:space-between; align-items:center; flex-wrap:wrap; gap:10px;">
+      <div>
+        <h3 style="color:#38bdf8; font-size:16px; font-weight:800;">📊 全球航運即期與長約運價基準綜合看板</h3>
+        <p style="color:#cbd5e1; font-size:12px; margin-top:2px;">涵蓋貨櫃現貨 SCFI、超大型油輪 VLCC TD3C 等價日租金 (TCE)、波羅的海原油與散裝綜合指數。</p>
+      </div>
+      <span style="font-family:monospace; font-size:12px; color:#ffd700;">發布基準：${data.lastUpdated}</span>
+    </div>
+  `;
+
+  groups.forEach(grp => {
+    html += `
+      <div class="freight-section-group">
+        <div class="freight-header-row">
+          <div>
+            <h2 style="font-size:17px; font-weight:800; color:#fff;">${grp.categoryZh}</h2>
+            <div style="font-size:11px; color:#94a3b8; margin-top:2px;">${grp.description}</div>
+          </div>
+        </div>
+
+        <div class="freight-indices-grid">
+          ${grp.indices.map(idx => {
+            const isUp = idx.changePct >= 0;
+            let chgClass = isUp ? 'chg-up' : 'chg-down';
+            if (idx.status === 'boom') chgClass = 'chg-boom';
+
+            // 52 週高低區間進度條
+            const rangePct = Math.round(((idx.currentValue - idx.low52w) / (idx.high52w - idx.low52w)) * 100);
+
+            return `
+              <div class="freight-card">
+                <div class="freight-card-top">
+                  <div class="freight-name">${idx.nameZh}</div>
+                  <div class="freight-unit">${idx.unit}</div>
+                </div>
+
+                <div class="freight-val-row">
+                  <div class="freight-val">${idx.currentValue.toLocaleString()}</div>
+                  <div class="freight-chg-pill ${chgClass}">
+                    ${isUp ? '▲ +' : '▼ '}${idx.changePct}% (${isUp ? '+' : ''}${idx.changeWeekly})
+                  </div>
+                </div>
+
+                <div class="freight-range-bar">
+                  <div style="display:flex; justify-content:space-between;">
+                    <span>52週低: ${idx.low52w}</span>
+                    <span style="color:#38bdf8;">目前位階 ${rangePct}%</span>
+                    <span>52週高: ${idx.high52w}</span>
+                  </div>
+                  <div class="range-track">
+                    <div class="range-fill" style="width:${rangePct}%;"></div>
+                  </div>
+                </div>
+
+                <div class="freight-desc">${idx.commentary}</div>
+              </div>
+            `;
+          }).join('')}
+        </div>
+      </div>
+    `;
+  });
+
+  container.innerHTML = html;
+}
+
+/** ==========================================================================
+ * 模組二：海峽繞道成本與航期互動試算器渲染與事件 (Detour Calculator)
+ * ========================================================================== */
+function renderCalculatorSection() {
+  const container = document.getElementById('detourCalculatorContainer');
+  if (!container || !window.DetourCalculator) return;
+
+  container.innerHTML = `
+    <div class="calc-layout-grid">
+      <!-- 左欄：輸入與滑桿控制項 -->
+      <div class="calc-controls-card">
+        <h2 style="font-size:18px; font-weight:800; color:#fff; margin-bottom:6px;">🧮 航線繞道財務與單箱成本換算模型</h2>
+        <p style="font-size:12px; color:#94a3b8; margin-bottom:16px;">拉動下方數值滑桿，系統將即時計算船東繞道總成本、通行費節省、損益平衡點與單箱運費加價！</p>
+
+        <!-- 場景切換按鈕 -->
+        <div class="scenario-selector-row">
+          <button class="cat-pill active calc-scene-btn" data-scene="suez_cape">蘇伊士運河 vs. 繞道好望角</button>
+          <button class="cat-pill calc-scene-btn" data-scene="panama_horn">巴拿馬運河競拍 vs. 繞道合恩角</button>
+          <button class="cat-pill calc-scene-btn" data-scene="hormuz_pipe">荷姆茲戰險 vs. ADCOP 陸上油管</button>
+        </div>
+
+        <!-- 場景一輸入項：蘇伊士 vs 好望角 -->
+        <div id="sceneInputs_suez_cape" class="calc-scene-inputs">
+          <div class="calc-input-row">
+            <div>
+              <label style="font-size:11px; color:#94a3b8;">貨櫃船裝載容量 (TEU):</label>
+              <select id="suez_teuCapacity" class="search-input-box" style="width:100%; min-width:auto; margin-top:4px;">
+                <option value="15000" selected>15,000 TEU (遠洋新主力船)</option>
+                <option value="20000">20,000 TEU (超大型巨輪)</option>
+                <option value="24000">24,000 TEU (長榮A級/現代旗艦)</option>
+                <option value="10000">10,000 TEU (中型貨櫃船)</option>
+              </select>
+            </div>
+            <div>
+              <label style="font-size:11px; color:#94a3b8;">艙位裝載率 (%):</label>
+              <input type="number" id="suez_loadFactor" value="85" min="50" max="100" class="search-input-box" style="width:100%; min-width:auto; margin-top:4px;">
+            </div>
+          </div>
+
+          <div class="calc-slider-group">
+            <div class="slider-label-row">
+              <span>繞道好望角增加航程天數:</span>
+              <strong id="disp_extraDays" style="color:#ffd700; font-family:monospace;">12 天</strong>
+            </div>
+            <input type="range" id="suez_extraDays" min="8" max="18" value="12" step="1" class="calc-range-slider">
+          </div>
+
+          <div class="calc-slider-group">
+            <div class="slider-label-row">
+              <span>船用低硫燃油價格 ($/噸 VLSFO):</span>
+              <strong id="disp_fuelPrice" style="color:#38bdf8; font-family:monospace;">$620 / 噸</strong>
+            </div>
+            <input type="range" id="suez_fuelPrice" min="450" max="850" value="620" step="10" class="calc-range-slider">
+          </div>
+
+          <div class="calc-input-row">
+            <div>
+              <label style="font-size:11px; color:#94a3b8;">船舶每日營運/租金成本 ($/天):</label>
+              <input type="number" id="suez_charterCost" value="45000" step="1000" class="search-input-box" style="width:100%; min-width:auto; margin-top:4px;">
+            </div>
+            <div>
+              <label style="font-size:11px; color:#94a3b8;">蘇伊士運河省下通行費 ($/趟):</label>
+              <input type="number" id="suez_tollSaved" value="550000" step="10000" class="search-input-box" style="width:100%; min-width:auto; margin-top:4px;">
+            </div>
+          </div>
+        </div>
+
+        <!-- 場景二輸入項：巴拿馬競拍 vs 合恩角 -->
+        <div id="sceneInputs_panama_horn" class="calc-scene-inputs" style="display:none;">
+          <div class="calc-slider-group">
+            <div class="slider-label-row">
+              <span>巴拿馬運河特別拍賣插隊費 ($):</span>
+              <strong id="disp_auctionFee" style="color:#f43f5e; font-family:monospace;">$1,500,000</strong>
+            </div>
+            <input type="range" id="panama_auctionFee" min="200000" max="4000000" value="1500000" step="50000" class="calc-range-slider">
+          </div>
+          <div class="calc-slider-group">
+            <div class="slider-label-row">
+              <span>繞道南美合恩角額外天數:</span>
+              <strong id="disp_detourDays" style="color:#ffd700; font-family:monospace;">18 天</strong>
+            </div>
+            <input type="range" id="panama_detourDays" min="12" max="25" value="18" step="1" class="calc-range-slider">
+          </div>
+          <div class="calc-input-row">
+            <div>
+              <label style="font-size:11px; color:#94a3b8;">每日船舶營運租金 ($/天):</label>
+              <input type="number" id="panama_dailyShipCost" value="35000" class="search-input-box" style="width:100%; min-width:auto; margin-top:4px;">
+            </div>
+            <div>
+              <label style="font-size:11px; color:#94a3b8;">正常運河通行費 ($):</label>
+              <input type="number" id="panama_normalToll" value="400000" class="search-input-box" style="width:100%; min-width:auto; margin-top:4px;">
+            </div>
+          </div>
+        </div>
+
+        <!-- 場景三輸入項：荷姆茲戰險 vs 陸上油管 -->
+        <div id="sceneInputs_hormuz_pipe" class="calc-scene-inputs" style="display:none;">
+          <div class="calc-slider-group">
+            <div class="slider-label-row">
+              <span>荷姆茲過境附加戰險費率 (AWRP %):</span>
+              <strong id="disp_warRiskRate" style="color:#f43f5e; font-family:monospace;">0.35 %</strong>
+            </div>
+            <input type="range" id="hormuz_warRiskRate" min="0.05" max="0.75" value="0.35" step="0.01" class="calc-range-slider">
+          </div>
+          <div class="calc-slider-group">
+            <div class="slider-label-row">
+              <span>阿聯酋 ADCOP 油管過境費 ($/桶):</span>
+              <strong id="disp_pipeTariff" style="color:#10b981; font-family:monospace;">$1.80 / 桶</strong>
+            </div>
+            <input type="range" id="hormuz_pipeTariff" min="0.80" max="3.00" value="1.80" step="0.10" class="calc-range-slider">
+          </div>
+          <div class="calc-input-row">
+            <div>
+              <label style="font-size:11px; color:#94a3b8;">VLCC 滿載原油桶數:</label>
+              <input type="number" id="hormuz_barrels" value="2000000" class="search-input-box" style="width:100%; min-width:auto; margin-top:4px;">
+            </div>
+            <div>
+              <label style="font-size:11px; color:#94a3b8;">超大型油輪船體保額 ($):</label>
+              <input type="number" id="hormuz_hullValue" value="120000000" class="search-input-box" style="width:100%; min-width:auto; margin-top:4px;">
+            </div>
+          </div>
+        </div>
+      </div>
+
+      <!-- 右欄：即時量化試算結果面板 -->
+      <div class="calc-results-card" id="calcResultsBox">
+        <!-- 由 updateCalcDisplay 即時計算渲染 -->
+      </div>
+    </div>
+  `;
+
+  // 綁定事件監聽
+  bindCalculatorEvents();
+  updateCalcDisplay('suez_cape');
+}
+
+function bindCalculatorEvents() {
+  const sceneBtns = document.querySelectorAll('.calc-scene-btn');
+  let currentScene = 'suez_cape';
+
+  sceneBtns.forEach(btn => {
+    btn.addEventListener('click', () => {
+      sceneBtns.forEach(b => b.classList.remove('active'));
+      btn.classList.add('active');
+      currentScene = btn.getAttribute('data-scene');
+
+      document.querySelectorAll('.calc-scene-inputs').forEach(el => el.style.display = 'none');
+      const targetDiv = document.getElementById(`sceneInputs_${currentScene}`);
+      if (targetDiv) targetDiv.style.display = 'block';
+
+      updateCalcDisplay(currentScene);
+    });
+  });
+
+  // 監聽所有 input 與 slider
+  const allInputs = document.querySelectorAll('#detourCalculatorContainer input, #detourCalculatorContainer select');
+  allInputs.forEach(input => {
+    input.addEventListener('input', () => {
+      // 即時更新數值顯示
+      const extraDays = document.getElementById('suez_extraDays');
+      if (extraDays) document.getElementById('disp_extraDays').textContent = `${extraDays.value} 天`;
+      const fuelPrice = document.getElementById('suez_fuelPrice');
+      if (fuelPrice) document.getElementById('disp_fuelPrice').textContent = `$${fuelPrice.value} / 噸`;
+
+      const auctionFee = document.getElementById('panama_auctionFee');
+      if (auctionFee) document.getElementById('disp_auctionFee').textContent = `$${Number(auctionFee.value).toLocaleString()}`;
+      const detourDays = document.getElementById('panama_detourDays');
+      if (detourDays) document.getElementById('disp_detourDays').textContent = `${detourDays.value} 天`;
+
+      const warRisk = document.getElementById('hormuz_warRiskRate');
+      if (warRisk) document.getElementById('disp_warRiskRate').textContent = `${warRisk.value} %`;
+      const pipeTariff = document.getElementById('hormuz_pipeTariff');
+      if (pipeTariff) document.getElementById('disp_pipeTariff').textContent = `$${Number(pipeTariff.value).toFixed(2)} / 桶`;
+
+      updateCalcDisplay(currentScene);
+    });
+  });
+}
+
+function updateCalcDisplay(scene) {
+  const resBox = document.getElementById('calcResultsBox');
+  if (!resBox || !window.DetourCalculator) return;
+
+  if (scene === 'suez_cape') {
+    const res = window.DetourCalculator.calculateSuezCape({
+      teuCapacity: Number(document.getElementById('suez_teuCapacity').value),
+      loadFactor: Number(document.getElementById('suez_loadFactor').value),
+      extraDays: Number(document.getElementById('suez_extraDays').value),
+      fuelPrice: Number(document.getElementById('suez_fuelPrice').value),
+      charterCostPerDay: Number(document.getElementById('suez_charterCost').value),
+      suezTollSaved: Number(document.getElementById('suez_tollSaved').value)
+    });
+
+    resBox.innerHTML = `
+      <div style="font-size:12px; color:#38bdf8; font-weight:700; text-transform:uppercase;">蘇伊士 vs. 繞道好望角 試算結果</div>
+      <h3 style="font-size:18px; font-weight:800; color:#fff; margin:4px 0 14px 0;">單箱損益平衡需轉嫁運費</h3>
+
+      <div class="calc-kpi-block">
+        <div class="calc-kpi-main">+$${res.costPerTeu} <span style="font-size:14px; font-weight:normal; color:#cbd5e1;">/ TEU</span></div>
+        <div style="font-size:11px; color:#94a3b8; margin-top:4px;">船東為彌補好望角繞道淨成本，每只標準貨櫃需加收之附加費</div>
+      </div>
+
+      <div class="calc-breakdown-list">
+        <div class="calc-breakdown-item"><span>實際載貨量:</span> <strong>${res.actualTeu.toLocaleString()} TEU</strong></div>
+        <div class="calc-breakdown-item"><span>額外燃油消耗 (${res.extraDays}天):</span> <strong>${res.extraFuelTons} 噸 ($${res.extraFuelCost.toLocaleString()})</strong></div>
+        <div class="calc-breakdown-item"><span>船舶租金/運營額外成本:</span> <strong>$${res.extraCharterCost.toLocaleString()}</strong></div>
+        <div class="calc-breakdown-item"><span>歐盟碳稅 (EU ETS) 增項:</span> <strong>$${res.euEtsCost.toLocaleString()}</strong></div>
+        <div class="calc-breakdown-item" style="color:#10b981;"><span>省下蘇伊士單趟通行費:</span> <strong>-$${res.suezTollSaved.toLocaleString()}</strong></div>
+        <div class="calc-breakdown-item" style="border-top:1px solid #38bdf8; font-weight:bold; color:#fff;">
+          <span>單趟淨增加成本:</span> <span style="color:#ffd700;">$${res.netCost.toLocaleString()}</span>
+        </div>
+      </div>
+
+      <div style="margin-top:auto; padding:10px; background:rgba(2,132,199,0.15); border-radius:6px; font-size:11px; color:#cbd5e1;">
+        💡 <strong>全球運力緊縮效果：</strong> 繞道好望角增加 ${res.extraDays} 天航期，實質將該航線船隊運力消耗吸收約 <strong style="color:#00ff88;">${res.absorbedCapacityPct}%</strong>，是支撐長榮、陽明即期運價高檔的最根本原因！
+      </div>
+    `;
+  } else if (scene === 'panama_horn') {
+    const res = window.DetourCalculator.calculatePanamaHorn({
+      auctionFee: Number(document.getElementById('panama_auctionFee').value),
+      detourDays: Number(document.getElementById('panama_detourDays').value),
+      dailyShipCost: Number(document.getElementById('panama_dailyShipCost').value),
+      normalToll: Number(document.getElementById('panama_normalToll').value)
+    });
+
+    resBox.innerHTML = `
+      <div style="font-size:12px; color:#38bdf8; font-weight:700; text-transform:uppercase;">巴拿馬競拍 vs. 繞道合恩角 試算結果</div>
+      <h3 style="font-size:18px; font-weight:800; color:#fff; margin:4px 0 14px 0;">決策效益評估</h3>
+
+      <div class="calc-kpi-block">
+        <div class="calc-kpi-main" style="color:${res.savings > 0 ? '#10b981' : '#f43f5e'};">
+          ${res.savings > 0 ? '省下 $' + res.savings.toLocaleString() : '多花 $' + Math.abs(res.savings).toLocaleString()}
+        </div>
+        <div style="font-size:12px; font-weight:700; color:#fff; margin-top:6px;">${res.recommendation}</div>
+      </div>
+
+      <div class="calc-breakdown-list">
+        <div class="calc-breakdown-item"><span>巴拿馬通行總成本 (含拍賣費):</span> <strong>$${res.directThroughCost.toLocaleString()}</strong></div>
+        <div class="calc-breakdown-item"><span>繞道合恩角租金成本 (${document.getElementById('panama_detourDays').value}天):</span> <strong>$${res.detourCharterCost.toLocaleString()}</strong></div>
+        <div class="calc-breakdown-item"><span>繞道額外燃油總耗費:</span> <strong>$${res.detourFuelCost.toLocaleString()}</strong></div>
+        <div class="calc-breakdown-item" style="border-top:1px solid #38bdf8; font-weight:bold; color:#fff;">
+          <span>繞道南美總代價:</span> <span style="color:#ffd700;">$${res.detourTotalCost.toLocaleString()}</span>
+        </div>
+      </div>
+    `;
+  } else if (scene === 'hormuz_pipe') {
+    const res = window.DetourCalculator.calculateHormuzPipeline({
+      barrels: Number(document.getElementById('hormuz_barrels').value),
+      hullValue: Number(document.getElementById('hormuz_hullValue').value),
+      warRiskRate: Number(document.getElementById('hormuz_warRiskRate').value),
+      pipelineTariff: Number(document.getElementById('hormuz_pipeTariff').value)
+    });
+
+    resBox.innerHTML = `
+      <div style="font-size:12px; color:#38bdf8; font-weight:700; text-transform:uppercase;">荷姆茲海峽戰險 vs. 陸上油管 試算結果</div>
+      <h3 style="font-size:18px; font-weight:800; color:#fff; margin:4px 0 14px 0;">單趟戰略避險成本對比</h3>
+
+      <div class="calc-kpi-block">
+        <div class="calc-kpi-main" style="color:#f43f5e;">$${res.warRiskPremium.toLocaleString()}</div>
+        <div style="font-size:11px; color:#94a3b8; margin-top:4px;">VLCC 單航次過境荷姆茲海峽需額外繳納之戰險 (AWRP)</div>
+      </div>
+
+      <div class="calc-breakdown-list">
+        <div class="calc-breakdown-item"><span>原油每桶戰險分攤:</span> <strong>+$${res.warRiskCostPerBarrel} / 桶</strong></div>
+        <div class="calc-breakdown-item"><span>ADCOP 陸上油管總過境費:</span> <strong>$${res.pipelineTotalCost.toLocaleString()}</strong></div>
+        <div class="calc-breakdown-item"><span>油管管輸費率:</span> <strong>$${res.pipelineTariff} / 桶</strong></div>
+      </div>
+
+      <div style="margin-top:auto; padding:10px; background:rgba(217,70,239,0.15); border-radius:6px; font-size:11px; color:#cbd5e1;">
+        💡 <strong>戰略意義：</strong> 阿聯酋透過 ADCOP 管道每日輸送 150 萬桶，既避開荷姆茲海峽戰險，更完全免受水雷封鎖風險！
+      </div>
+    `;
+  }
+}
+
+/** ==========================================================================
+ * 模組三：全球船隊供需剪刀差與造船廠手持訂單比渲染 (Orderbook-to-Fleet)
+ * ========================================================================== */
+function renderOrderbookSection() {
+  const container = document.getElementById('orderbookContainer');
+  if (!container || !window.ORDERBOOK_DATA) return;
+
+  container.innerHTML = `
+    <div style="margin-bottom:24px; padding:16px 20px; background:linear-gradient(135deg, rgba(234,179,8,0.1), rgba(14,165,233,0.1)); border:1px solid rgba(234,179,8,0.3); border-radius:10px;">
+      <h2 style="font-size:18px; font-weight:800; color:#ffd700;">🏗️ 全球各大船型手持訂單比與供需剪刀差分析 (Orderbook-to-Fleet)</h2>
+      <p style="font-size:12px; color:#cbd5e1; margin-top:4px;">
+        決定航運股長線多空週期的最硬核數據：<strong>手持訂單佔比越低（如 VLCC 僅 7.8%），未來新船交船壓力越小，運價爆發力越持久；反之若訂單比過高（如貨櫃 22.5%），則極度依賴地緣繞道來消化運力！</strong>
+      </p>
+    </div>
+
+    <div class="orderbook-grid">
+      ${window.ORDERBOOK_DATA.map(ob => `
+        <div class="orderbook-card" style="border-top: 3px solid ${ob.statusColor};">
+          <div class="ob-header">
+            <div>
+              <h3 style="font-size:17px; font-weight:800; color:#fff;">${ob.sectorZh}</h3>
+              <div style="font-size:11px; color:#94a3b8; font-family:var(--font-mono);">${ob.sectorEn}</div>
+            </div>
+            <div class="ob-ratio-badge" style="color:${ob.statusColor}; border:1px solid ${ob.statusColor}55;">
+              ${ob.orderbookRatio}% <span style="font-size:10px; font-weight:normal;">訂單比</span>
+            </div>
+          </div>
+
+          <div style="font-size:12px; color:#cbd5e1; margin-bottom:6px;">
+            <span>現役船隊總量:</span> <strong style="color:#fff;">${ob.currentFleet}</strong>
+          </div>
+
+          <div class="ob-bar-wrapper">
+            <div style="display:flex; justify-content:space-between; font-size:11px;">
+              <span style="color:${ob.statusColor}; font-weight:bold;">● 供需狀態：${ob.statusZh}</span>
+              <span style="color:#94a3b8;">手持訂單比重</span>
+            </div>
+            <div class="ob-progress-track">
+              <div class="ob-progress-fill" style="width:${Math.min(ob.orderbookRatio * 2.2, 100)}%; background:${ob.statusColor};"></div>
+            </div>
+          </div>
+
+          <div class="delivery-timeline-box">
+            <div style="font-weight:700; color:#94a3b8; margin-bottom:4px;">📅 未來 3 年新船交付排程預估：</div>
+            <div class="timeline-row"><span>2025 年交船:</span> <strong>${ob.deliveries.y2025}</strong></div>
+            <div class="timeline-row"><span>2026 年交船:</span> <strong>${ob.deliveries.y2026}</strong></div>
+            <div class="timeline-row"><span>2027 年及以後:</span> <strong>${ob.deliveries.y2027plus}</strong></div>
+            <div class="timeline-row" style="border-top:1px dashed rgba(255,255,255,0.1); padding-top:4px; margin-top:4px;">
+              <span>年均淨供給增速:</span> <strong style="color:${ob.netSupplyGrowth.includes('幾無') ? '#ffd700' : '#38bdf8'};">${ob.netSupplyGrowth}</strong>
+            </div>
+          </div>
+
+          <div style="font-size:12px; line-height:1.6; color:#cbd5e1; background:rgba(10,18,32,0.6); padding:10px; border-radius:6px; margin:8px 0;">
+            ${ob.strategicTakeaway}
+          </div>
+
+          <div style="margin-top:auto; padding-top:10px;">
+            <div style="font-size:11px; color:#94a3b8; margin-bottom:4px;">核心受惠標的:</div>
+            <div style="display:flex; flex-wrap:wrap; gap:4px;">
+              ${ob.coreBeneficiaryStocks.map(s => `<span class="carrier-tag" style="cursor:pointer;" onclick="filterStocksByTicker('${s}')">${s}</span>`).join('')}
+            </div>
+          </div>
+        </div>
+      `).join('')}
+    </div>
   `;
 }
