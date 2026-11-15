@@ -359,6 +359,26 @@
   border: 1px solid #1e3a5f;
   box-shadow: 0 12px 36px rgba(0, 0, 0, 0.6);
   background: #050d18;
+  perspective: 1200px;
+}
+
+.ecdis-map-wrapper.tilt-3d-active .ecdis-leaflet-canvas {
+  transform: rotateX(24deg) scale(1.05);
+  transform-origin: 50% 88%;
+  transition: transform 0.6s cubic-bezier(0.16, 1, 0.3, 1);
+  box-shadow: 0 24px 60px rgba(0, 0, 0, 0.95);
+}
+
+.ecdis-map-wrapper.tilt-3d-active::after {
+  content: '';
+  position: absolute;
+  top: 0;
+  left: 0;
+  right: 0;
+  height: 28%;
+  pointer-events: none;
+  background: linear-gradient(to bottom, rgba(5, 13, 24, 0.92) 0%, rgba(5, 13, 24, 0.4) 60%, transparent 100%);
+  z-index: 999;
 }
 
 .global-map-wrapper {
@@ -370,6 +390,7 @@
   width: 100%;
   height: 100%;
   background: #050d18;
+  transition: transform 0.5s ease;
 }
 
 /* 浮動戰術 HUD */
@@ -379,9 +400,10 @@
   left: 14px;
   display: flex;
   align-items: center;
-  gap: 12px;
+  flex-wrap: wrap;
+  gap: 10px;
   padding: 8px 14px;
-  background: rgba(10, 20, 36, 0.9);
+  background: rgba(10, 20, 36, 0.92);
   border: 1px solid rgba(56, 189, 248, 0.35);
   border-radius: 8px;
   backdrop-filter: blur(10px);
@@ -390,6 +412,69 @@
   font-family: var(--font-mono);
   font-size: 11px;
   box-shadow: 0 6px 16px rgba(0, 0, 0, 0.5);
+}
+
+.hud-btn-group {
+  display: flex;
+  align-items: center;
+  gap: 4px;
+}
+
+.hud-btn {
+  background: rgba(15, 23, 42, 0.85);
+  border: 1px solid rgba(56, 189, 248, 0.3);
+  color: #94a3b8;
+  padding: 3px 8px;
+  border-radius: 4px;
+  font-size: 11px;
+  cursor: pointer;
+  transition: all 0.2s ease;
+  white-space: nowrap;
+}
+
+.hud-btn:hover, .hud-btn.active {
+  background: #0284c7;
+  color: #fff;
+  border-color: #38bdf8;
+  box-shadow: 0 0 10px rgba(14, 165, 233, 0.5);
+}
+
+/* AIS 即時航行船舶標記 */
+.leaflet-ais-ship-marker {
+  position: relative;
+  width: 26px;
+  height: 26px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  cursor: pointer;
+}
+
+.ais-ship-icon {
+  font-size: 16px;
+  animation: shipBobbing 2.5s ease-in-out infinite;
+}
+
+@keyframes shipBobbing {
+  0%, 100% { transform: translateY(0); }
+  50% { transform: translateY(-3px); }
+}
+
+.ais-ship-label {
+  position: absolute;
+  top: 24px;
+  left: 50%;
+  transform: translateX(-50%);
+  background: rgba(6, 11, 19, 0.9);
+  border: 1px solid rgba(56, 189, 248, 0.4);
+  padding: 1px 6px;
+  border-radius: 3px;
+  font-size: 9px;
+  font-weight: 700;
+  color: #fff;
+  white-space: nowrap;
+  pointer-events: none;
+  box-shadow: 0 2px 6px rgba(0,0,0,0.8);
 }
 
 .hud-tag {

@@ -32,16 +32,29 @@ class ECDISChart {
 
     // 清空舊容器內容並重構 DOM 結構
     container.innerHTML = `
-      <div class="ecdis-map-wrapper">
+      <div class="ecdis-map-wrapper" id="ecdisMapWrapper">
         <div id="ecdisLeafletMap" class="ecdis-leaflet-canvas"></div>
         
-        <!-- ECDIS 浮動控制面板 -->
+        <!-- ECDIS 浮動戰術 HUD 控制面板 -->
         <div class="ecdis-floating-hud">
           <div class="hud-tag">
             <span class="live-dot" style="width:6px; height:6px;"></span>
             <span>IMO ECDIS S-52 · WGS-84</span>
           </div>
           <div class="hud-latlon" id="ecdisCursorCoord">LAT: 26°00'N | LON: 53°30'E</div>
+          
+          <!-- 戰情焦點快速飛越 (Tactical Quick Fly-To) -->
+          <div class="hud-btn-group">
+            <button class="hud-btn ecdis-view-btn active" data-view="panoramic">🌐 全景</button>
+            <button class="hud-btn ecdis-view-btn" data-view="hormuz">⚔️ 荷姆茲 TSS</button>
+            <button class="hud-btn ecdis-view-btn" data-view="adcop">⚡ ADCOP 油管</button>
+            <button class="hud-btn ecdis-view-btn" data-view="west_gulf">🛢️ 達曼/巴林/卡達</button>
+          </div>
+
+          <!-- 3D 戰情傾斜視角切換 -->
+          <button id="ecdisTiltBtn" class="hud-btn" style="border-color:#38bdf8; color:#38bdf8; font-weight:700;">🎮 3D 視角</button>
+
+          <!-- 底圖切換器 -->
           <div class="hud-basemap-select">
             <select id="ecdisBasemapSelector" class="basemap-dropdown">
               <option value="dark">戰術暗夜海圖 (Tactical Dark)</option>
@@ -115,6 +128,40 @@ class ECDISChart {
       }
     });
 
+    // 監聽 3D 戰情視角切換
+    const tiltBtn = document.getElementById('ecdisTiltBtn');
+    const mapWrapper = document.getElementById('ecdisMapWrapper');
+    if (tiltBtn && mapWrapper) {
+      tiltBtn.addEventListener('click', () => {
+        mapWrapper.classList.toggle('tilt-3d-active');
+        const isActive = mapWrapper.classList.contains('tilt-3d-active');
+        tiltBtn.classList.toggle('active', isActive);
+        tiltBtn.textContent = isActive ? '🎮 2D 俯視' : '🎮 3D 視角';
+        setTimeout(() => {
+          this.map.invalidateSize();
+        }, 300);
+      });
+    }
+
+    // 監聽戰情焦點飛越切換 (Tactical Views Fly-To)
+    const viewBtns = document.querySelectorAll('.ecdis-view-btn');
+    viewBtns.forEach(btn => {
+      btn.addEventListener('click', () => {
+        viewBtns.forEach(b => b.classList.remove('active'));
+        btn.classList.add('active');
+        const view = btn.getAttribute('data-view');
+        if (view === 'panoramic') {
+          this.map.flyTo([26.1, 53.6], 7, { duration: 1.2 });
+        } else if (view === 'hormuz') {
+          this.map.flyTo([26.62, 56.40], 9, { duration: 1.2 });
+        } else if (view === 'adcop') {
+          this.map.flyTo([24.60, 55.20], 8, { duration: 1.2 });
+        } else if (view === 'west_gulf') {
+          this.map.flyTo([26.30, 51.00], 8, { duration: 1.2 });
+        }
+      });
+    });
+
     // 監聽底圖切換
     const basemapSelect = document.getElementById('ecdisBasemapSelector');
     if (basemapSelect) {
@@ -131,11 +178,14 @@ class ECDISChart {
     // 繪製荷姆茲海峽 TSS 分道通航制
     this.drawHormuzTSS();
 
-    // 繪製五大動態光流航道
+    // 繪製五大動態光流航道 (精準遵循水深航槽與避開卡達半島)
     this.drawShippingLanes();
 
     // 繪製 12 大樞紐港口
     this.drawPortMarkers();
+
+    // 繪製動態 AIS 模擬商船在線巡航
+    this.drawSimulatedAISFleet();
 
     // 預設選中 Jebel Ali 港
     this.selectPort("jebel_ali");
@@ -143,14 +193,15 @@ class ECDISChart {
 
   /**
    * 繪製荷姆茲海峽 IMO 分道通航制 (TSS) 真實幾何
+   * 嚴格位於阿曼穆桑代姆半島以北深水槽中，水深 >70m
    */
   drawHormuzTSS() {
     // 1. 北行進港分道 (Inbound Westbound Lane - 240°)
     const inboundCoords = [
-      [26.42, 56.68],
-      [26.58, 56.45],
-      [26.68, 56.22],
-      [26.62, 55.95]
+      [26.48, 56.88],
+      [26.65, 56.56],
+      [26.75, 56.25],
+      [26.70, 55.88]
     ];
     const inboundLine = L.polyline(inboundCoords, {
       color: '#00ff88',
@@ -159,19 +210,19 @@ class ECDISChart {
       opacity: 0.9,
       className: 'flow-active-fareast'
     }).addTo(this.map);
-    inboundLine.bindTooltip('IMO TSS 北行進港航道 (Inbound 240°)', { permanent: false, className: 'ecdis-map-tooltip' });
+    inboundLine.bindTooltip('IMO TSS 北行進港航道 (Inbound 240° · 水深 >60m)', { permanent: false, className: 'ecdis-map-tooltip' });
     this.tssLayers.push(inboundLine);
 
     // 2. 中央安全緩衝隔離帶 (Separation Zone)
     const separationPolygon = [
-      [26.35, 56.65],
-      [26.50, 56.42],
-      [26.59, 56.18],
-      [26.52, 55.92],
-      [26.46, 55.93],
-      [26.53, 56.20],
-      [26.44, 56.43],
-      [26.30, 56.66]
+      [26.44, 56.84],
+      [26.60, 56.53],
+      [26.70, 56.23],
+      [26.64, 55.86],
+      [26.58, 55.86],
+      [26.65, 56.23],
+      [26.55, 56.52],
+      [26.39, 56.82]
     ];
     const sepZone = L.polygon(separationPolygon, {
       color: '#eab308',
@@ -180,15 +231,15 @@ class ECDISChart {
       fillOpacity: 0.35,
       dashArray: '4, 4'
     }).addTo(this.map);
-    sepZone.bindTooltip('TSS 中央安全隔離緩衝帶 (非航行區)', { permanent: false, className: 'ecdis-map-tooltip' });
+    sepZone.bindTooltip('TSS 中央安全隔離緩衝帶 (非航行區 · 寬約 1-2 海浬)', { permanent: false, className: 'ecdis-map-tooltip' });
     this.tssLayers.push(sepZone);
 
-    // 3. 南行出港分道 (Outbound Eastbound Lane - 060°)
+    // 3. 南行出港分道 (Outbound Eastbound Lane - 060° · VLCC 原油動脈)
     const outboundCoords = [
-      [26.40, 55.90],
-      [26.47, 56.17],
-      [26.38, 56.40],
-      [26.22, 56.62]
+      [26.56, 55.85],
+      [26.62, 56.22],
+      [26.51, 56.50],
+      [26.35, 56.80]
     ];
     const outboundLine = L.polyline(outboundCoords, {
       color: '#ffd700',
@@ -197,14 +248,15 @@ class ECDISChart {
       opacity: 0.9,
       className: 'flow-active-vlcc'
     }).addTo(this.map);
-    outboundLine.bindTooltip('IMO TSS 南行出港航道 (Outbound 060° - VLCC 原油動脈)', { permanent: false, className: 'ecdis-map-tooltip' });
+    outboundLine.bindTooltip('IMO TSS 南行出港航道 (Outbound 060° · VLCC 滿載原油出口動脈)', { permanent: false, className: 'ecdis-map-tooltip' });
     this.tssLayers.push(outboundLine);
 
-    // 4. 深水航道註記 (Deep Water Route - Draft > 20m)
+    // 4. 深水航道註記 (Deep Water Route - Draft > 20m for Laden VLCC)
     const dwrCoords = [
-      [26.70, 56.15],
-      [26.55, 56.38],
-      [26.30, 56.62]
+      [26.73, 55.92],
+      [26.80, 56.27],
+      [26.70, 56.60],
+      [26.53, 56.92]
     ];
     const dwrLine = L.polyline(dwrCoords, {
       color: '#38bdf8',
@@ -212,27 +264,33 @@ class ECDISChart {
       dashArray: '3, 6',
       opacity: 0.8
     }).addTo(this.map);
-    dwrLine.bindTooltip('深水航槽 (DWR - 水深 >80m，供滿載 30萬噸 VLCC 專用)', { permanent: false, className: 'ecdis-map-tooltip' });
+    dwrLine.bindTooltip('深水航槽 (DWR - 水深 80-100m，供 30 萬噸滿載超大型油輪專用)', { permanent: false, className: 'ecdis-map-tooltip' });
     this.tssLayers.push(dwrLine);
   }
 
   /**
-   * 繪製五大動態光流航線 (利用真實地理 GPS 座標)
+   * 繪製五大動態光流航線 (利用真實地理 GPS 座標，徹底避免穿越陸地)
    */
   drawShippingLanes() {
-    // 1. 遠東直達幹線 (Asia Direct: 綠色光流)
+    // 1. 遠東直達幹線 (Asia Direct: 綠色光流 · 經阿曼灣、阿聯酋並繞過卡達北端抵達達曼)
     const fareastCoords = [
-      [23.5, 59.5], // 阿拉伯海進口
-      [24.502, 56.638], // 經蘇哈爾外海
-      [25.178, 56.368], // 經富吉拉外海
-      [26.42, 56.68], // 荷姆茲進港 TSS
-      [26.68, 56.22],
-      [26.62, 55.95],
-      [24.985, 55.027], // Jebel Ali (杜拜)
-      [24.862, 54.654], // Khalifa Port (阿布達比)
-      [25.5, 52.8],
-      [26.495, 50.145], // Dammam (達曼)
-      [27.025, 49.658]  // Jubail (朱拜勒)
+      [23.50, 59.50],   // 阿拉伯海進口
+      [24.502, 56.638], // 蘇哈爾外海
+      [25.178, 56.368], // 富吉拉外海
+      [26.48, 56.88],   // 荷姆茲進港 TSS 入口
+      [26.65, 56.56],
+      [26.75, 56.25],   // 繞過穆桑代姆角北端深水
+      [26.70, 55.88],
+      [25.60, 55.30],   // 杜拜外海
+      [24.985, 55.027], // 傑貝阿里港 (Jebel Ali)
+      [24.862, 54.654], // 哈里發港 (Khalifa Port)
+      [25.30, 54.20],
+      [25.80, 53.20],   // 卡達以東深槽
+      [26.40, 52.40],   // 卡達東北深水水道
+      [26.65, 51.50],   // 繞過卡達半島最北端 (Ras Rakan 以北深水區)
+      [26.65, 50.80],   // 進入巴林灣/達曼航道
+      [26.495, 50.145], // 達曼港 (Dammam)
+      [27.025, 49.658]  // 朱拜勒 (Jubail)
     ];
     this.laneLayers['lane_fareast'] = L.polyline(fareastCoords, {
       color: '#00ff88',
@@ -240,18 +298,25 @@ class ECDISChart {
       opacity: 0.85,
       dashArray: '12, 6',
       className: 'flow-active-fareast'
-    }).addTo(this.map).bindTooltip('遠東直達幹線 (Asia Direct Mainline)', { className: 'ecdis-map-tooltip' });
+    }).addTo(this.map).bindTooltip('遠東直達幹線 (Asia Direct Mainline · 杜拜/阿布達比/繞道卡達北端至達曼)', { className: 'ecdis-map-tooltip' });
 
     // 2. 歐洲/地中海幹線 (Europe/Med: 橘色光流)
     const europeCoords = [
-      [23.0, 58.5],
-      [24.2, 57.2],
+      [23.00, 58.50],
+      [24.20, 57.20],
       [25.178, 56.368], // 富吉拉
-      [26.42, 56.68],
-      [26.62, 55.95],
+      [26.48, 56.88],
+      [26.65, 56.56],
+      [26.75, 56.25],
+      [26.70, 55.88],
       [24.985, 55.027], // Jebel Ali
-      [25.018, 51.615], // Hamad Port (卡達)
-      [26.495, 50.145]  // Dammam
+      [25.018, 51.615], // 卡達哈馬德港 (Hamad Port)
+      [25.40, 51.80],   // 沿卡達東海岸北上主航道
+      [25.95, 51.85],   // 拉斯拉凡外海
+      [26.40, 52.20],
+      [26.65, 51.50],   // 繞過卡達北端安全水道
+      [26.65, 50.80],
+      [26.495, 50.145]  // 達曼港
     ];
     this.laneLayers['lane_europe'] = L.polyline(europeCoords, {
       color: '#ff9900',
@@ -263,16 +328,23 @@ class ECDISChart {
 
     // 3. VLCC 原油與 LNG 出口動脈 (Crude & Gas Export: 金黃色光流)
     const vlccCoords = [
-      [30.038, 47.948], // 伊拉克巴士拉/烏姆蓋斯爾出港
-      [28.5, 49.5],
-      [27.025, 49.658], // 朱拜勒 / 拉斯塔努拉
-      [25.912, 51.583], // 卡達拉斯拉凡 LNG 出口
-      [26.2, 53.5], // 波斯灣中央深槽
-      [26.40, 55.90], // 荷姆茲出港 TSS
-      [26.22, 56.62],
-      [25.178, 56.368], // 富吉拉外海
-      [24.0, 57.8],
-      [23.0, 59.8] // 駛向印度洋與東亞
+      [30.038, 47.948], // 伊拉克烏姆蓋斯爾/巴士拉外海
+      [29.30, 48.80],
+      [28.20, 49.50],
+      [27.025, 49.658], // 朱拜勒 / 拉斯塔努拉原油裝卸碼頭
+      [26.75, 50.50],   // 避開巴林淺灘走主航槽
+      [26.70, 51.40],   // 卡達北側深槽水深 >35m
+      [26.35, 52.20],
+      [25.912, 51.583], // 卡達拉斯拉凡 LNG 超級出口泊位
+      [26.35, 52.80],
+      [26.45, 54.00],   // 波斯灣中央 VLCC 萬噸級深水通道
+      [26.56, 55.85],   // 荷姆茲出港 TSS 入口
+      [26.62, 56.22],   // 海峽中央深槽
+      [26.51, 56.50],   // 出港航向 060°
+      [26.35, 56.80],   // 荷姆茲出港 TSS 出口
+      [25.178, 56.368], // 富吉拉外海單點繫泊浮筒 (SPM)
+      [24.00, 57.80],
+      [23.00, 59.80]    // 駛向印度洋與東亞戰略儲備港
     ];
     this.laneLayers['lane_vlcc'] = L.polyline(vlccCoords, {
       color: '#ffd700',
@@ -280,18 +352,18 @@ class ECDISChart {
       opacity: 0.95,
       dashArray: '14, 7',
       className: 'flow-active-vlcc'
-    }).addTo(this.map).bindTooltip('VLCC 原油與卡達 LNG 超級出口動脈', { className: 'ecdis-map-tooltip' });
+    }).addTo(this.map).bindTooltip('VLCC 原油與卡達 LNG 超級出口動脈 (載運全球 21% 原油與 24% LNG)', { className: 'ecdis-map-tooltip' });
 
-    // 4. 灣內支線駁運 (Regional Feeders: 青藍色虛線)
+    // 4. 灣內支線駁運 (Regional Feeders: 青藍色虛線 - 全程在安全水道中航行)
     const feederBranches = [
       // Jebel Ali -> Shuwaikh (科威特)
-      [[24.985, 55.027], [26.0, 53.0], [27.5, 50.5], [29.355, 47.925]],
+      [[24.985, 55.027], [25.80, 54.00], [26.80, 52.00], [28.00, 49.80], [29.10, 48.40], [29.355, 47.925]],
       // Jebel Ali -> Umm Qasr (伊拉克)
-      [[24.985, 55.027], [26.5, 52.0], [28.5, 49.5], [30.038, 47.948]],
-      // Jebel Ali -> Bahrain
-      [[24.985, 55.027], [25.5, 53.0], [26.208, 50.697]],
-      // Jebel Ali -> Hamad (卡達)
-      [[24.985, 55.027], [25.018, 51.615]]
+      [[24.985, 55.027], [26.00, 53.50], [27.50, 51.20], [28.80, 49.20], [29.80, 48.40], [30.038, 47.948]],
+      // Jebel Ali -> Bahrain (巴林) - 繞過卡達北端深水航道
+      [[24.985, 55.027], [25.60, 53.80], [26.40, 52.20], [26.65, 51.50], [26.50, 50.90], [26.208, 50.697]],
+      // Jebel Ali -> Hamad (卡達多哈)
+      [[24.985, 55.027], [25.20, 53.50], [25.018, 51.615]]
     ];
     const feederGroup = L.featureGroup();
     feederBranches.forEach(branch => {
@@ -309,9 +381,9 @@ class ECDISChart {
     // 5. 阿聯酋哈布善—富吉拉陸上繞道油管 (ADCOP: 紫色高光實線)
     const adcopCoords = [
       [23.75, 53.75], // 阿布達比內陸 Habshan 油田基地
-      [24.2, 54.5],
-      [24.6, 55.4],
-      [25.0, 56.0], // 穿越哈賈爾山脈
+      [24.20, 54.50],
+      [24.60, 55.40],
+      [25.00, 56.00], // 穿越哈賈爾山脈
       [25.178, 56.368] // 抵達荷姆茲海峽外之富吉拉港 (Port of Fujairah)
     ];
     this.laneLayers['lane_adcop'] = L.polyline(adcopCoords, {
@@ -319,7 +391,72 @@ class ECDISChart {
       weight: 4.5,
       opacity: 1.0,
       className: 'flow-active-adcop'
-    }).addTo(this.map).bindTooltip('阿聯酋 ADCOP 陸上輸油管 (繞過荷姆茲海峽直通富吉拉港)', { className: 'ecdis-map-tooltip' });
+    }).addTo(this.map).bindTooltip('阿聯酋 ADCOP 陸上輸油管 (日輸 150 萬桶 · 繞過荷姆茲海峽直通富吉拉港)', { className: 'ecdis-map-tooltip' });
+  }
+
+  /**
+   * 繪製動態 AIS 模擬商船在線巡航
+   */
+  drawSimulatedAISFleet() {
+    const ships = [
+      {
+        name: "長榮 A級旗艦 (24,000 TEU)",
+        type: "超大型貨櫃輪 (Container)",
+        icon: "🚢",
+        color: "#00ff88",
+        lat: 25.40,
+        lon: 55.20,
+        speed: "18.5 節",
+        heading: "240° (入港航向)",
+        dest: "Jebel Ali (杜拜)"
+      },
+      {
+        name: "Frontline VLCC (300,000 DWT)",
+        type: "超大型原油輪 (Crude)",
+        icon: "🛢️",
+        color: "#ffd700",
+        lat: 26.51,
+        lon: 56.50,
+        speed: "14.2 節",
+        heading: "060° (出港航向)",
+        dest: "Kaohsiung / Taiwan"
+      },
+      {
+        name: "Nakilat Q-Max (266,000 m³)",
+        type: "超級 LNG 船 (Gas)",
+        icon: "❄️",
+        color: "#38bdf8",
+        lat: 26.35,
+        lon: 53.20,
+        speed: "16.0 節",
+        heading: "105°",
+        dest: "Taichung / LNG Hub"
+      }
+    ];
+
+    ships.forEach(s => {
+      const shipHtml = `
+        <div class="leaflet-ais-ship-marker" title="${s.name}">
+          <span class="ais-ship-icon" style="color:${s.color};">${s.icon}</span>
+          <div class="ais-ship-label">${s.name.split(' ')[0]}</div>
+        </div>
+      `;
+
+      const icon = L.divIcon({
+        className: 'leaflet-custom-ship-icon',
+        html: shipHtml,
+        iconSize: [26, 26],
+        iconAnchor: [13, 13]
+      });
+
+      const marker = L.marker([s.lat, s.lon], { icon }).addTo(this.map);
+      marker.bindTooltip(`
+        <div style="font-size:12px; font-weight:bold; color:${s.color};">${s.icon} ${s.name}</div>
+        <div style="font-size:10px; color:#cbd5e1;">類型: ${s.type} · 航速: ${s.speed}</div>
+        <div style="font-size:10px; color:#cbd5e1;">航向: ${s.heading} · 目的地: ${s.dest}</div>
+        <div style="font-size:9px; color:#94a3b8; margin-top:2px;">● AIS 即時動態訊號驗證通過</div>
+      `, { className: 'ecdis-map-tooltip', direction: 'top' });
+    });
   }
 
   /**

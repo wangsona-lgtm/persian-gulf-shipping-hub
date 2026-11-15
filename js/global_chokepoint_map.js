@@ -37,10 +37,12 @@ class GlobalChokePointMap {
       <div class="global-map-wrapper">
         <div id="globalLeafletMap" class="global-leaflet-canvas"></div>
         <div class="global-map-hud">
-          <span style="color:#00ff88;">● 全球 10 大關鍵海峽咽喉</span>
+          <span style="color:#00ff88;">● 全球 10 大關鍵海峽</span>
           <span style="color:#ff9900;">━ 亞歐蘇伊士線</span>
-          <span style="color:#ffd700;">━ 好望角繞道動脈</span>
-          <span style="color:#00d2ff;">━ 美國巴拿馬線</span>
+          <span style="color:#ffd700;">━ 好望角繞道線</span>
+          <span style="color:#00ff88;">━ 波斯灣東亞原油線</span>
+          <span style="color:#00d2ff;">━ 美國巴拿馬兩洋線</span>
+          <span style="color:#a855f7;">━ 跨太平洋北線</span>
         </div>
       </div>
     `;
@@ -80,39 +82,71 @@ class GlobalChokePointMap {
    * 繪製全球遠洋大動脈 (Real Geodesics)
    */
   drawGlobalMainlines() {
-    // 1. 亞歐幹線 (經馬六甲 -> 曼德海峽 -> 蘇伊士運河 -> 地中海 -> 多佛)
+    // 1. 亞歐蘇伊士直達幹線 (經台灣海峽 -> 南海深水區 -> 馬六甲 -> 曼德海峽 -> 蘇伊士 -> 直布羅陀 -> 多佛)
     const asiaEuropeRoute = [
-      [31.2, 121.5], // 上海
-      [22.3, 114.2], // 香港
-      [1.43, 103.10], // 馬六甲
-      [5.9, 80.5],   // 斯里蘭卡
-      [12.58, 43.33], // 曼德海峽
-      [27.8, 34.3],  // 紅海
-      [30.58, 32.55], // 蘇伊士運河
-      [36.0, 15.0],  // 地中海
-      [35.96, -5.60], // 直布羅陀海峽
-      [48.0, -5.0],
-      [51.10, 1.45],  // 多佛海峽
-      [51.9, 4.3]    // 鹿特丹
+      [31.20, 121.50], // 上海洋山深水港
+      [24.50, 119.80], // 台灣海峽 (Taiwan Strait)
+      [22.30, 114.20], // 香港葵青貨櫃碼頭
+      [16.50, 114.20], // 南海深水主航道 (西沙以東深水槽，水深 >2000m，徹底避開越南陸地)
+      [11.50, 111.50], // 越南外海百浬深水區
+      [6.00, 107.50],  // 納土納群島以西
+      [1.35, 104.30],  // 新加坡海峽東口
+      [1.25, 103.75],  // 新加坡港 (PSA Hub)
+      [1.43, 103.10],  // 馬六甲海峽主航道 TSS
+      [3.00, 100.50],  // 馬六甲中段
+      [5.50, 96.00],   // 蘇門答臘西北韋島外海
+      [5.80, 80.50],   // 斯里蘭卡南端 (Dondra Head 深水航道)
+      [7.50, 75.00],   // 印度洋中央通道
+      [9.50, 72.00],   // 八度海峽安全走廊 (Eight Degree Channel)
+      [12.50, 52.00],  // 索科特拉島北側 (Socotra Channel)
+      [12.00, 46.50],  // 亞丁灣國際推薦安全走廊 (IRTC)
+      [12.58, 43.33],  // 曼德海峽 TSS 分道通航制
+      [17.00, 41.50],  // 紅海中央深水航槽
+      [22.00, 38.00],  // 紅海中段
+      [27.50, 34.50],  // 蒂朗海峽西南外海
+      [30.58, 32.55],  // 蘇伊士運河 (Suez Canal)
+      [32.00, 31.50],  // 地中海塞得港外海
+      [34.50, 24.50],  // 地中海中央航道 (克里特島南側)
+      [36.50, 15.00],  // 西西里海峽深槽
+      [37.20, 8.50],   // 突尼斯以北海域
+      [36.50, 0.00],   // 西地中海
+      [35.96, -5.60],  // 直布羅陀海峽 TSS (Strait of Gibraltar)
+      [37.00, -9.50],  // 聖文森角 (葡萄牙西南深水區)
+      [44.00, -9.50],  // 比斯開灣外緣
+      [48.50, -5.50],  // 烏埃尚島 (Ushant TSS)
+      [50.00, -1.00],  // 英吉利海峽中央航道
+      [51.10, 1.45],   // 多佛海峽 TSS (Strait of Dover)
+      [51.90, 4.30]    // 鹿特丹港 (Port of Rotterdam)
     ];
     L.polyline(asiaEuropeRoute, {
       color: '#ff9900',
-      weight: 3,
+      weight: 3.2,
       opacity: 0.85,
       dashArray: '8, 5',
       className: 'flow-active-europe'
-    }).addTo(this.map).bindTooltip('亞歐蘇伊士直達幹線 (Suez Mainline)', { className: 'ecdis-map-tooltip' });
+    }).addTo(this.map).bindTooltip('亞歐蘇伊士直達幹線 (Suez Mainline - 經台灣海峽、南海、馬六甲與紅海)', { className: 'ecdis-map-tooltip' });
 
-    // 2. 好望角繞道動脈 (Cape of Good Hope Bypass)
+    // 2. 好望角繞道動脈 (Cape of Good Hope Bypass - 紅海危機替代大動脈)
     const capeBypassRoute = [
-      [1.43, 103.10], // 馬六甲海峽出口
-      [-10.0, 75.0], // 印度洋南部
-      [-25.0, 45.0], // 馬達加斯加南方
-      [-34.35, 18.47], // 好望角 (南非)
-      [-15.0, 5.0],  // 南大西洋
-      [5.0, -15.0],
-      [35.96, -5.60], // 直布羅陀
-      [51.10, 1.45]  // 鹿特丹/多佛
+      [1.25, 103.75],   // 新加坡
+      [-1.00, 103.50],
+      [-5.80, 105.80],  // 巽他海峽出口 / 印度洋南道
+      [-10.00, 95.00],  // 東印度洋深海
+      [-18.00, 80.00],  // 南印度洋盛行西風走廊
+      [-28.00, 55.00],  // 馬達加斯加東南深海
+      [-34.00, 32.00],  // 厄加勒斯洋流槽 (Agulhas Current)
+      [-35.00, 24.00],  // 厄加勒斯角外海深水
+      [-34.35, 18.47],  // 好望角 (Cape of Good Hope TSS)
+      [-30.00, 14.00],  // 南大西洋本格拉洋流深水帶
+      [-15.00, 2.00],   // 聖赫勒拿島海域
+      [0.00, -12.00],   // 赤道幾內亞灣西側大洋
+      [15.00, -20.00],  // 維德角群島西側
+      [30.00, -18.00],  // 加那利群島西側
+      [36.00, -10.00],  // 葡萄牙外海 (連通直布羅陀/北歐走廊)
+      [44.00, -9.50],
+      [48.50, -5.50],
+      [51.10, 1.45],   // 多佛海峽
+      [51.90, 4.30]    // 鹿特丹/漢堡
     ];
     L.polyline(capeBypassRoute, {
       color: '#ffd700',
@@ -120,43 +154,75 @@ class GlobalChokePointMap {
       opacity: 0.9,
       dashArray: '12, 6',
       className: 'flow-active-vlcc'
-    }).addTo(this.map).bindTooltip('好望角繞道終極動脈 (紅海危機替代航線)', { className: 'ecdis-map-tooltip' });
+    }).addTo(this.map).bindTooltip('好望角繞道終極動脈 (紅海危機全球貨櫃船替代航線 · 繞行非洲)', { className: 'ecdis-map-tooltip' });
 
     // 3. 波斯灣至東亞原油動脈 (Persian Gulf to East Asia)
     const pgToAsiaRoute = [
-      [26.56, 56.25], // 荷姆茲海峽
-      [22.0, 65.0],
-      [10.0, 75.0],
-      [1.43, 103.10], // 馬六甲海峽
-      [10.0, 110.0],
-      [24.50, 119.80], // 台灣海峽
-      [31.2, 121.5], // 中國上海/寧波
-      [34.5, 138.0]  // 日本東京灣
+      [27.00, 50.00],   // 沙烏地拉斯塔努拉 / 達曼
+      [26.40, 53.50],   // 波斯灣深槽
+      [26.56, 56.25],   // 荷姆茲海峽 TSS
+      [24.50, 58.50],   // 阿曼灣深海
+      [18.00, 68.00],   // 阿拉伯海中央走廊
+      [9.50, 73.00],    // 八度海峽
+      [5.80, 80.50],    // 斯里蘭卡南端
+      [5.50, 96.00],    // 蘇門答臘西北外海
+      [3.00, 100.50],
+      [1.43, 103.10],   // 馬六甲海峽
+      [1.35, 104.30],   // 新加坡海峽東口
+      [6.00, 107.50],
+      [11.50, 111.50],  // 南海深水航道
+      [16.50, 114.20],
+      [22.30, 114.20],  // 香港
+      [24.50, 119.80],  // 台灣海峽 (Taiwan Strait)
+      [31.20, 121.50],  // 上海/寧波
+      [34.50, 138.00]   // 日本東京灣
     ];
     L.polyline(pgToAsiaRoute, {
       color: '#00ff88',
-      weight: 4,
+      weight: 3.8,
       opacity: 0.9,
       dashArray: '10, 5',
       className: 'flow-active-fareast'
-    }).addTo(this.map).bindTooltip('波斯灣-東亞原油與 LNG 戰略動脈', { className: 'ecdis-map-tooltip' });
+    }).addTo(this.map).bindTooltip('波斯灣-東亞原油與 LNG 戰略動脈 (承載東亞 75% 進口原油)', { className: 'ecdis-map-tooltip' });
 
-    // 4. 美東至東亞巴拿馬航線 (Panama Route)
+    // 4. 巴拿馬兩洋航線 (Panama Canal Mainline - 美東/美灣至美西太平洋)
     const panamaRoute = [
-      [40.7, -74.0], // 紐約
-      [25.0, -75.0],
-      [9.08, -79.68], // 巴拿馬運河
-      [15.0, -110.0],
-      [22.0, -140.0],
-      [24.50, 119.80] // 台灣海峽 / 東亞
+      [40.70, -74.00],  // 紐約港 (Port of New York)
+      [32.00, -75.00],  // 查爾斯頓外海
+      [25.00, -78.00],  // 巴哈馬西北水道 (大西洋深水)
+      [18.00, -76.00],  // 牙買加深海海盆
+      [9.35, -79.90],   // 巴拿馬運河大西洋端 (Colon / Cristobal)
+      [8.95, -79.55],   // 巴拿馬運河太平洋端 (Balboa)
+      [7.00, -82.00],   // 太平洋進出口
+      [12.00, -95.00],  // 中美洲太平洋深水航槽
+      [18.00, -107.00], // 墨西哥外海
+      [26.00, -116.00], // 下加利福尼亞深海走廊
+      [33.70, -118.20]  // 洛杉磯/長灘港 (Port of Los Angeles / Long Beach)
     ];
     L.polyline(panamaRoute, {
       color: '#00d2ff',
-      weight: 2.8,
+      weight: 3.0,
       opacity: 0.85,
-      dashArray: '6, 6',
+      dashArray: '8, 6',
       className: 'flow-active-feeder'
-    }).addTo(this.map).bindTooltip('巴拿馬兩洋航線 (美國穀物與 LNG 運往東亞)', { className: 'ecdis-map-tooltip' });
+    }).addTo(this.map).bindTooltip('巴拿馬兩洋幹線 (美國穀物、化學品與貨櫃大動脈 · 紐約—巴拿馬—洛杉磯)', { className: 'ecdis-map-tooltip' });
+
+    // 5. 跨太平洋遠洋大圓航線 (Transpacific Great Circle - 遠東至北美西岸)
+    const transpacificAsiaRoute = [
+      [24.50, 119.80],  // 台灣海峽
+      [31.20, 121.50],  // 上海
+      [35.00, 140.00],  // 東京灣
+      [40.00, 150.00],  // 津輕外海大圓動脈
+      [45.00, 165.00],  // 北太平洋西風帶深水走廊
+      [48.00, 178.00]   // 接近國際換日線深海
+    ];
+    L.polyline(transpacificAsiaRoute, {
+      color: '#a855f7',
+      weight: 2.8,
+      opacity: 0.8,
+      dashArray: '6, 6',
+      className: 'flow-active-fareast'
+    }).addTo(this.map).bindTooltip('跨太平洋北線大圓航道 (亞洲—美西貨櫃動脈)', { className: 'ecdis-map-tooltip' });
   }
 
   /**
